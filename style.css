@@ -142,17 +142,21 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 /* ---------- calendar ---------- */
 .calendar { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 8px 8px; overflow-y: auto; overscroll-behavior: contain; }
-.cal { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.cal { flex: none; display: flex; flex-direction: column; }
 .cal-head { position: sticky; top: 0; z-index: 3; background: var(--bg); display: grid; grid-template-columns: var(--wkcol) repeat(7, minmax(0, 1fr)); align-items: end; padding-bottom: 4px; }
 .wk-lbl, .wd { text-align: center; font-size: 14px; color: var(--text); }
 .wk-lbl { font-size: 13px; }
-.cal-body { flex: 1; min-height: 0; display: flex; }
-.wknos { width: var(--wkcol); flex: none; display: grid; grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); }
+.cal-body {
+  display: grid; grid-template-columns: var(--wkcol) minmax(0, 1fr);
+  /* rows are a fixed height that fills the screen; busy days scroll inside their cell */
+  grid-template-rows: repeat(var(--rows), var(--rowh, 90px));
+}
+.wknos { grid-column: 1; grid-row: 1 / -1; display: grid; grid-template-rows: subgrid; }
 .wkno { text-align: center; font-size: 14px; color: var(--wkno); padding-top: 8px; }
 .box {
-  flex: 1; min-width: 0; display: grid;
+  grid-column: 2; grid-row: 1 / -1; min-width: 0; display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  grid-template-rows: repeat(var(--rows), minmax(0, 1fr));
+  grid-template-rows: subgrid;
   border: 2px solid var(--box); border-radius: 3px;
 }
 .day, .wcol { min-height: 0; overflow: hidden; display: flex; flex-direction: column; padding: 4px; }
@@ -170,8 +174,15 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .wd-week.sel-day .wd-date { box-shadow: inset 0 0 0 2px var(--blue); color: var(--blue); }
 .day-num span, .wd-date { transition: box-shadow .15s ease; }
 
-.blocks { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; align-content: flex-start; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.blocks {
+  display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; align-content: flex-start;
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
+}
 .blocks::-webkit-scrollbar { display: none; }
+/* soft fade at an edge where more circles are hidden */
+.blocks.more-below { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent); }
+.blocks.more-above { -webkit-mask-image: linear-gradient(to top, #000 calc(100% - 16px), transparent); mask-image: linear-gradient(to top, #000 calc(100% - 16px), transparent); }
+.blocks.more-above.more-below { -webkit-mask-image: linear-gradient(to bottom, transparent, #000 16px, #000 calc(100% - 16px), transparent); mask-image: linear-gradient(to bottom, transparent, #000 16px, #000 calc(100% - 16px), transparent); }
 .block {
   width: var(--block); height: var(--block); border-radius: 50%; flex: none; cursor: grab;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
@@ -189,11 +200,11 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 /* month fish */
 .box { position: relative; }
-.fish-in { position: absolute; display: flex; align-items: center; justify-content: flex-end; padding: 6px 4px 6px 8px; pointer-events: none; }
-.animal-row { grid-column: 1 / -1; min-height: 0; display: flex; align-items: center; justify-content: flex-end; padding: 6px 4px 6px 8px; pointer-events: none; }
-.cal.tall { flex: none; }
-.fish { width: 100%; height: 100%; max-width: 230px; overflow: visible; }
-.animal-row .fish { width: 100%; height: 100%; }
+/* the animal never makes its row taller: it is laid over the space, not inside it */
+.fish-in, .animal-row { position: relative; min-height: 0; pointer-events: none; }
+.animal-row { grid-column: 1 / -1; }
+.fish { overflow: visible; }
+.fish-in .fish, .animal-row .fish { position: absolute; top: 6px; bottom: 6px; right: 4px; width: calc(100% - 12px); height: calc(100% - 12px); max-width: 230px; }
 .fish circle { transform-box: fill-box; transform-origin: center; }
 .fish circle.grey { fill: #c9ccd1; }
 .fish circle.pop { animation: dot-pop .5s cubic-bezier(.3,1.7,.5,1) .22s backwards; }

@@ -542,11 +542,7 @@ function renderMonth() {
   const extraRow = trail < 2;
   const { wrap, wknos, box } = calendarShell(weeks + (extraRow ? 1 : 0), WEEKDAYS.map((w) => el("div", "wd", w)));
   for (let r = 0; r < weeks; r++) wknos.append(el("div", "wkno", isoWeek(addDays(gridStart, r * 7))));
-  if (extraRow) {
-    wknos.append(el("div", "wkno"));
-    wrap.classList.add("tall");
-    wrap.style.height = `calc((100% - 30px) * ${(weeks + 1) / weeks} + 30px)`;
-  }
+  if (extraRow) wknos.append(el("div", "wkno"));
 
   // Grid lines: solid next to real days, dashed between empty cells,
   // and none inside the animal's corner so it has open space.
@@ -560,6 +556,7 @@ function renderMonth() {
     if (i % 7 < 6) { const k = lineKind(i, i + 1); if (k) cell.classList.add("br-" + k); }
     if (i + 7 < total) { const k = lineKind(i, i + 7); if (k) cell.classList.add("bb-" + k); }
     else if (extraRow) cell.classList.add("bb-solid");   // line above the animal row
+    if (inFish(i)) continue;   // the animal sits here instead
     if (d.getMonth() !== m) {
       cell.classList.add("out");   // other month: empty, no date
       box.append(cell);
@@ -582,8 +579,46 @@ function renderMonth() {
   const cal = $("#calendar");
   const keepScroll = cal.dataset.month === `${y}-${m}` ? cal.scrollTop : 0;
   cal.dataset.month = `${y}-${m}`;
+  const cellScroll = saveCellScroll();
   cal.replaceChildren(wrap);
+  sizeRows(wrap, weeks);
   cal.scrollTop = keepScroll;
+  restoreCellScroll(cellScroll);
+}
+
+/* ---------- busy days scroll inside their cell ---------- */
+function saveCellScroll() {
+  const m = new Map();
+  document.querySelectorAll("#calendar [data-date] .blocks").forEach((b) => {
+    if (b.scrollTop) m.set(b.parentElement.dataset.date, b.scrollTop);
+  });
+  return m;
+}
+function restoreCellScroll(m) {
+  document.querySelectorAll("#calendar [data-date] .blocks").forEach((b) => {
+    const t = m.get(b.parentElement.dataset.date);
+    if (t) b.scrollTop = t;
+    updateFade(b);
+  });
+}
+// Fade the top/bottom edge when there are hidden circles that way.
+function updateFade(b) {
+  const max = b.scrollHeight - b.clientHeight;
+  b.classList.toggle("more-above", max > 1 && b.scrollTop > 1);
+  b.classList.toggle("more-below", max > 1 && b.scrollTop < max - 1);
+}
+$("#calendar").addEventListener("scroll", (e) => {
+  if (e.target.classList && e.target.classList.contains("blocks")) updateFade(e.target);
+}, true);
+
+// Base row height: the month's weeks fill the screen. A row with lots of
+// circles grows taller than this, and the calendar then scrolls.
+function sizeRows(wrap, rowsOnScreen) {
+  const cal = $("#calendar");
+  const head = wrap.querySelector(".cal-head");
+  const padBottom = parseFloat(getComputedStyle(cal).paddingBottom) || 0;
+  const avail = cal.clientHeight - padBottom - (head ? head.offsetHeight : 30) - 4;   // 4 = box outline
+  wrap.style.setProperty("--rowh", `${Math.max(56, Math.floor(avail / rowsOnScreen))}px`);
 }
 
 /* =========================================================
@@ -648,10 +683,8 @@ function addFish(box, trail, rows, extraRow, y, m) {
   if (!extraRow) {
     // Fits into the empty cells after the month's last day.
     holder.className = "fish-in";
-    holder.style.left = `${((7 - trail) / 7) * 100}%`;
-    holder.style.width = `${(trail / 7) * 100}%`;
-    holder.style.top = `${((rows - 1) / rows) * 100}%`;
-    holder.style.height = `${(1 / rows) * 100}%`;
+    holder.style.gridRow = String(rows);
+    holder.style.gridColumn = `${8 - trail} / span ${trail}`;
     box.append(holder);
   } else {
     // Its own row at the bottom of the calendar, inside the outline.
@@ -752,7 +785,10 @@ function renderWeek() {
   const { wrap, wknos, box } = calendarShell(1, heads);
   wknos.append(el("div", "wkno", isoWeek(start)));
   box.append(...cols);
+  const cellScroll = saveCellScroll();
   $("#calendar").replaceChildren(wrap);
+  sizeRows(wrap, 1);
+  restoreCellScroll(cellScroll);
 }
 
 /* =========================================================
@@ -1038,6 +1074,14 @@ async function flyToBlock(d, id, date) {
   }
   target.classList.add("flying");
   target.classList.remove("picked");
+  const cell = target.parentElement;
+  if (cell && cell.scrollHeight > cell.clientHeight) {
+    const top = target.offsetTop - cell.offsetTop;
+    if (top < cell.scrollTop || top + target.offsetHeight > cell.scrollTop + cell.clientHeight) {
+      cell.scrollTop = top + target.offsetHeight - cell.clientHeight + 4;
+      updateFade(cell);
+    }
+  }
   const r = target.getBoundingClientRect();
   const s = r.width / G;
   const end = `translate(${r.left + r.width / 2 - G / 2}px, ${r.top + r.height / 2 - G / 2}px) rotate(0deg) scale(${s})`;
