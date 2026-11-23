@@ -872,7 +872,6 @@ function beginDrag() {
   const g = el("div", "ghost");
   g.style.width = g.style.height = G + "px";
   g.style.background = dragColor();
-  if (drag.fromDot) g.style.borderRadius = "50%";
   document.body.append(g);
   drag.ghost = g;
   drag.gx = r.left + r.width / 2 - G / 2;
@@ -881,7 +880,7 @@ function beginDrag() {
   drag.rot = 0;
   g.style.transform = ghostTransform(drag);
   void g.offsetWidth;          // apply the start state before animating
-  g.classList.add("lifted");   // morphs to a rounded square with a big shadow
+  g.classList.add("lifted");   // lifts with a big soft shadow
 
   document.body.classList.add("dragging");
   document.body.style.setProperty("--drag-color", dragBaseColor());
@@ -1031,7 +1030,6 @@ function springBack(d) {
   }
   const end = `translate(${r.left + r.width / 2 - G / 2}px, ${r.top + r.height / 2 - G / 2}px) rotate(0deg) scale(${r.width / G})`;
   const frames = [{ transform: ghostTransform(d) }, { transform: end }];
-  if (d.fromDot) { frames[0].borderRadius = "10px"; frames[1].borderRadius = "50%"; }
   d.ghost.classList.remove("lifted");
   d.ghost.animate(frames, { duration: 380, easing: "cubic-bezier(.34,1.56,.64,1)", fill: "forwards" }).onfinish = () => {
     d.ghost.remove();
