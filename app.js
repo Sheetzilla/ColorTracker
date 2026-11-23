@@ -8,6 +8,7 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
+import { ANIMALS } from "./animals.js";
 
 /* =========================================================
    Firebase
@@ -464,6 +465,7 @@ $("#dotsNext").addEventListener("click", () => $("#dots").scrollBy({ left: $("#d
 $("#dots").addEventListener("click", (e) => { if (e.target.closest("#addDot")) openActivityDialog(null); });
 
 function renderDrawerList() {
+  renderGallery();
   const list = $("#activityList");
   list.innerHTML = "";
   const acts = sortedActivities();
@@ -571,73 +573,40 @@ function renderMonth() {
 }
 
 /* =========================================================
-   Month fish: grey dots that fill with colour, one per session
+   Month animals: grey dots that fill with colour, one per session.
+   Each month has its own animal (see animals.js).
    ========================================================= */
-const FISH = buildFish();
-const fishSeen = new Map();   // 'YYYY-MM' -> coloured dots last time, for the pop animation
+const animalSeen = new Map();   // 'YYYY-MM' -> coloured dots last time, for the pop animation
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-// Dot positions in a 100 × 60 box. Order = the order dots get coloured.
-// (Later, each month can use its own drawn fish: just another list like this.)
-function buildFish() {
-  const base = [];
-  const cx = 40, cy = 30, rx = 28, ry = 22, bodyN = 18;
-  const body = [];
-  for (let i = 0; i < bodyN; i++) {
-    const a = Math.PI + (i * 2 * Math.PI) / bodyN;   // starts at the nose, goes over the top
-    body.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]);
-  }
-  base.push(...body);
-  const tail = [[72, 20], [79, 15], [86, 10], [90, 22], [90, 30], [90, 38], [86, 50], [79, 45], [72, 40]];
-  base.push(...tail);
-  const eye = [27, 25];
-  base.push(eye);
-
-  // Extra dots for busy months: first between the outline dots, then filling the body.
-  const extra = [];
-  const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
-  for (let i = 0; i < bodyN; i++) extra.push(mid(body[i], body[(i + 1) % bodyN]));
-  for (let i = 0; i < tail.length - 1; i++) extra.push(mid(tail[i], tail[i + 1]));
-  const taken = [...base, ...extra];
-  const free = (p, d) => taken.every((q) => Math.hypot(p[0] - q[0], p[1] - q[1]) >= d);
-  const inner = [];
-  for (let y = cy - ry + 6; y <= cy + ry - 6; y += 6) {
-    for (let x = cx - rx + 6; x <= cx + rx - 4; x += 6) {
-      const inside = ((x - cx) / (rx - 4)) ** 2 + ((y - cy) / (ry - 4)) ** 2 <= 1;
-      if (inside && free([x, y], 5) && Math.hypot(x - eye[0], y - eye[1]) > 7) inner.push([x, y]);
-    }
-  }
-  for (const p of [[80, 22], [84, 30], [80, 38], [76, 30]]) if (free(p, 5)) inner.push(p);   // tail fill
-  inner.sort((p, q) => Math.hypot(p[0] - cx, p[1] - cy) - Math.hypot(q[0] - cx, q[1] - cy));
-  extra.push(...inner);
-  return { base, extra };
-}
-
-function addFish(wrap, box, trail, rows, y, m) {
-  const key = `${y}-${pad(m + 1)}`;
+function monthSessions(y, m) {
   const from = dateKey(new Date(y, m, 1)), to = dateKey(new Date(y, m + 1, 0));
-  const sessions = [...state.sessions.values()]
+  return [...state.sessions.values()]
     .filter((s) => s.date >= from && s.date <= to && state.activities.has(s.activityId))
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt || 0) - (b.createdAt || 0)));
-  const count = sessions.length;
-  const points = [...FISH.base, ...FISH.extra];
-  const total = Math.min(points.length, Math.max(FISH.base.length, count));
+}
 
-  const prev = fishSeen.get(key);
-  fishSeen.set(key, count);
-  const popFrom = prev !== undefined && count > prev ? prev : count;
-  const justCompleted = prev !== undefined && prev < FISH.base.length && count >= FISH.base.length;
+// Draws month m's animal coloured with that month's sessions.
+function animalSvg(y, m, { popFrom = Infinity, wiggle = false, align = "xMidYMid" } = {}) {
+  const animal = ANIMALS[m];
+  const sessions = monthSessions(y, m);
+  const count = sessions.length;
+  const baseN = animal.base.length;
+  const points = [...animal.base, ...animal.extra];
+  const total = Math.min(points.length, Math.max(baseN, count));
 
   const NS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("viewBox", "0 0 100 60");
-  svg.setAttribute("preserveAspectRatio", "xMaxYMid meet");   // hug the right edge
-  svg.setAttribute("class", "fish" + (justCompleted ? " wiggle" : "") + (count >= FISH.base.length ? " full" : ""));
-  svg.setAttribute("aria-label", `Month fish: ${Math.min(count, total)} of ${FISH.base.length} dots coloured`);
+  svg.setAttribute("preserveAspectRatio", `${align} meet`);
+  svg.setAttribute("class", "fish" + (wiggle ? " wiggle" : "") + (count >= baseN ? " full" : ""));
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", `${animal.name}: ${count} of ${baseN} dots coloured`);
   for (let i = 0; i < total; i++) {
     const c = document.createElementNS(NS, "circle");
     c.setAttribute("cx", points[i][0].toFixed(1));
     c.setAttribute("cy", points[i][1].toFixed(1));
-    c.setAttribute("r", i < FISH.base.length ? 2.7 : 2.2);
+    c.setAttribute("r", i < baseN ? 2.7 : 2.2);
     if (i < count) {
       const s = sessions[i];
       c.setAttribute("fill", shade(state.activities.get(s.activityId).color, s.minutes));
@@ -647,6 +616,18 @@ function addFish(wrap, box, trail, rows, y, m) {
     }
     svg.append(c);
   }
+  return { svg, count, baseN, sessions };
+}
+
+function addFish(wrap, box, trail, rows, y, m) {
+  const key = `${y}-${pad(m + 1)}`;
+  const count = monthSessions(y, m).length;
+  const baseN = ANIMALS[m].base.length;
+  const prev = animalSeen.get(key);
+  animalSeen.set(key, count);
+  const popFrom = prev !== undefined && count > prev ? prev : Infinity;
+  const wiggle = prev !== undefined && prev < baseN && count >= baseN;
+  const { svg } = animalSvg(y, m, { popFrom, wiggle, align: "xMaxYMid" });   // hug the right edge
 
   const holder = el("div");
   holder.append(svg);
@@ -664,6 +645,54 @@ function addFish(wrap, box, trail, rows, y, m) {
     wrap.append(holder);
   }
 }
+
+/* ---------- Gallery: this month's animal and every month since you started ---------- */
+let galleryOpen = false;
+
+function galleryMonths() {
+  const now = new Date();
+  let first = new Date(now.getFullYear(), now.getMonth(), 1);
+  for (const s of state.sessions.values()) {
+    const d = parseKey(s.date);
+    if (d < first) first = new Date(d.getFullYear(), d.getMonth(), 1);
+  }
+  for (const a of state.activities.values()) {
+    if (a.createdAt) { const d = new Date(a.createdAt); if (d < first) first = new Date(d.getFullYear(), d.getMonth(), 1); }
+  }
+  const months = [];
+  for (let d = new Date(now.getFullYear(), now.getMonth(), 1); d >= first; d = new Date(d.getFullYear(), d.getMonth() - 1, 1)) {
+    months.push([d.getFullYear(), d.getMonth()]);
+  }
+  return months;   // newest first
+}
+
+function renderGallery() {
+  const grid = $("#galleryGrid");
+  if (!galleryOpen || !state.user) { grid.innerHTML = ""; return; }
+  grid.innerHTML = "";
+  for (const [y, m] of galleryMonths()) {
+    const card = el("button", "gallery-card");
+    card.type = "button";
+    card.dataset.y = y;
+    card.dataset.m = m;
+    const { svg } = animalSvg(y, m);
+    card.append(svg, el("span", "gallery-title", `${MONTH_NAMES[m]} ${y}`));
+    grid.append(card);
+  }
+}
+
+$("#galleryToggle").addEventListener("click", () => {
+  galleryOpen = !galleryOpen;
+  $("#galleryToggle").setAttribute("aria-expanded", String(galleryOpen));
+  $("#galleryGrid").classList.toggle("hidden", !galleryOpen);
+  renderGallery();
+});
+
+$("#galleryGrid").addEventListener("click", (e) => {
+  const card = e.target.closest(".gallery-card");
+  if (!card) return;
+  openPopover({ type: "month", y: Number(card.dataset.y), m: Number(card.dataset.m) }, card, "side");
+});
 
 function renderWeek() {
   const start = startOfWeek(state.cursor);
@@ -767,6 +796,7 @@ function step(dir) {
 /* ---------- side menu ---------- */
 function openDrawer() {
   closePopover();
+  renderGallery();
   $("#drawer").classList.add("open");
   $("#scrim").classList.add("open");
   $("#drawer").setAttribute("aria-hidden", "false");
@@ -796,7 +826,7 @@ const FLICK_SPEED = 1.1; // px per ms
 const FLICK_DIST = 40;   // px from start
 
 document.addEventListener("pointerdown", (e) => {
-  if (pop && !e.target.closest("#popover") && !e.target.closest("[data-drag]") && !e.target.closest("#userBtn")) closePopover();
+  if (pop && !e.target.closest("#popover") && !e.target.closest("[data-drag]") && !e.target.closest("#userBtn") && !e.target.closest(".gallery-card")) closePopover();
   const src = e.target.closest("[data-drag]");
   if (!src || drag) return;
   if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -1197,6 +1227,39 @@ function renderPopover() {
     lines[0].textContent = `Default session: ${fmtMinutes(a.defaultMinutes || 30)}`;
     const total = totalsInRange().get(a.id) || 0;
     lines[1].textContent = `${state.view === "week" ? "This week" : "This month"}: ${fmtMinutes(total)}`;
+  } else if (pop.type === "month") {
+    const { y, m } = pop;
+    const key = "m:" + y + "-" + m;
+    const { count, baseN, sessions } = animalSvg(y, m);
+    const minutes = sessions.reduce((t, s) => t + (s.minutes || 0), 0);
+    const byAct = new Map();
+    for (const s of sessions) byAct.set(s.activityId, (byAct.get(s.activityId) || 0) + (s.minutes || 0));
+    const top = [...byAct.entries()].sort((p, q) => q[1] - p[1])[0];
+    if (popEl.dataset.built !== key) {
+      popEl.innerHTML = `
+        <div class="pop-head">
+          <strong class="pop-name"></strong>
+          <button class="icon-btn" data-act="close" aria-label="Close">×</button>
+        </div>
+        <div class="stat-row"><span>Dots coloured</span><b class="st-dots"></b></div>
+        <div class="stat-row"><span>Total time</span><b class="st-time"></b></div>
+        <div class="stat-row"><span>Top activity</span><b class="st-top"></b></div>
+        <div class="pop-actions"><button class="btn small" data-act="gotomonth">Go to month</button></div>`;
+      popEl.dataset.built = key;
+    }
+    popEl.querySelector(".pop-name").textContent = `${MONTH_NAMES[m]} ${y}`;
+    popEl.querySelector(".st-dots").textContent = `${count} / ${baseN}`;
+    popEl.querySelector(".st-time").textContent = minutes ? fmtMinutes(minutes) : "–";
+    const topEl = popEl.querySelector(".st-top");
+    topEl.textContent = "";
+    if (top) {
+      const a = state.activities.get(top[0]);
+      const dot = el("span", "st-dot");
+      dot.style.background = a.color;
+      topEl.append(dot, `${a.name} · ${fmtMinutes(top[1])}`);
+    } else {
+      topEl.textContent = "–";
+    }
   } else if (pop.type === "user") {
     if (popEl.dataset.built !== "user") {
       popEl.innerHTML = `<p class="pop-email"></p><button class="btn" data-act="signout">Sign out</button>`;
@@ -1248,6 +1311,15 @@ popEl.addEventListener("click", (e) => {
   if (btn.dataset.act === "close") return closePopover();
   if (btn.dataset.act === "signout") { closePopover(); return signOut(auth); }
   if (btn.dataset.act === "edit") { const id = pop.id; closePopover(); return openActivityDialog(id); }
+  if (btn.dataset.act === "gotomonth") {
+    const { y, m } = pop;
+    closePopover();
+    closeDrawer();
+    state.view = "month";
+    saveView();
+    state.cursor = new Date(y, m, 1);
+    return render();
+  }
   if (pop.type !== "session") return;
   const s = state.sessions.get(pop.id);
   if (!s) return;

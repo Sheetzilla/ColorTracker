@@ -257,6 +257,30 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .activity .act-name { font-size: 15px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .activity .act-meta { font-size: 12px; color: var(--muted); }
 
+/* ---------- gallery ---------- */
+.gallery { margin-top: 18px; }
+.gallery-toggle {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  font: inherit; font-size: 15px; font-weight: 600; color: var(--text);
+  background: none; border: 0; padding: 6px 4px; cursor: pointer; border-radius: 10px;
+}
+.gallery-toggle:hover { background: #eef1f6; }
+.gallery-toggle .chev { font-size: 22px; line-height: 1; color: var(--muted); transition: transform .2s ease; }
+.gallery-toggle[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.gallery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; animation: pop-in .18s ease-out; }
+.gallery-card {
+  font: inherit; background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  padding: 8px 6px 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.gallery-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+.gallery-card .fish { width: 100%; height: auto; max-width: none; aspect-ratio: 100 / 60; }
+.gallery-title { font-size: 12px; color: var(--muted); }
+.stat-row { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; margin-top: 10px; }
+.stat-row span { color: var(--muted); }
+.stat-row b { font-weight: 500; display: inline-flex; align-items: center; gap: 6px; text-align: right; }
+.st-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; }
+
 /* ---------- popover ---------- */
 .popover {
   position: fixed; z-index: 800; width: 270px; background: #fff;
