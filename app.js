@@ -725,7 +725,7 @@ function renderWeek() {
     h.append(el("div", "", WEEKDAYS[i]), el("div", "wd-date", d.getDate()), el("div", "wd-total", total ? fmtShort(total) : ""));
     heads.push(h);
 
-    const c = el("div", "wcol" + (i < 6 ? " br-solid" : ""));
+    const c = el("div", "wcol" + (i < 6 ? " br-solid" : "") + (key === today ? " today" : ""));
     c.dataset.date = key;
     const blocks = el("div", "blocks");
     for (const s of list) {
@@ -761,26 +761,18 @@ $("#todayBtn").addEventListener("click", () => {
   state.cursor = now;
   closePopover();
   render();
-  const mark = document.querySelector("#calendar .day.today .day-num span, #calendar .wd-week.today .wd-date");
-  if (!mark) return;
-  if (already) {
-    // "You're already here": a little hop and wiggle.
-    mark.animate([
-      { transform: "translateY(0) rotate(0)" },
-      { transform: "translateY(-9px) rotate(-10deg)", offset: 0.25 },
-      { transform: "translateY(0) rotate(8deg)", offset: 0.5 },
-      { transform: "translateY(-4px) rotate(-4deg)", offset: 0.72 },
-      { transform: "translateY(0) rotate(0)" }
-    ], { duration: 650, easing: "ease-out" });
-    vibrate(6);
-  } else {
-    // Jumped back to today: pop so the eye finds it.
-    mark.animate([
-      { transform: "scale(.4)", opacity: 0.4 },
-      { transform: "scale(1.3)", opacity: 1, offset: 0.6 },
-      { transform: "scale(1)" }
-    ], { duration: 480, easing: "cubic-bezier(.3,1.5,.5,1)" });
-  }
+  const box = document.querySelector("#calendar .day.today, #calendar .wcol.today");
+  if (!box) return;
+  const blue = "#4a7fd6";
+  const pulse = [
+    { boxShadow: `inset 0 0 0 2px ${blue}`, backgroundColor: "rgba(74,127,214,0)" },
+    { boxShadow: `inset 0 0 0 5px ${blue}`, backgroundColor: "rgba(74,127,214,.14)" },
+    { boxShadow: `inset 0 0 0 2px ${blue}`, backgroundColor: "rgba(74,127,214,0)" }
+  ];
+  // Already on today: a quick double pulse ("you're already here").
+  // Coming back from another month: one pulse so the eye finds it.
+  box.animate(pulse, { duration: already ? 380 : 560, iterations: already ? 2 : 1, easing: "ease-out" });
+  if (already) vibrate(6);
 });
 document.querySelectorAll(".view-toggle button").forEach((b) =>
   b.addEventListener("click", () => { state.view = b.dataset.view; saveView(); closePopover(); render(); })

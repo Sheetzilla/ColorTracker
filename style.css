@@ -161,12 +161,11 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .bb-dash  { border-bottom: 1px dashed var(--grid-faint); }
 .day-num { text-align: center; font-size: 13px; margin-bottom: 4px; flex: none; line-height: 22px; }
 .day-num span { display: inline-grid; place-items: center; min-width: 22px; height: 22px; border-radius: 50%; padding: 0 2px; will-change: transform; }
-.day.today .day-num span { background: var(--blue); color: #fff; }
+.day.today { box-shadow: inset 0 0 0 2px var(--blue); }
+.day.today .day-num span { color: var(--blue); font-weight: 600; }
 /* the day whose session popup is open */
 .day.sel-day .day-num span { box-shadow: inset 0 0 0 2px var(--blue); color: var(--blue); }
-.day.today.sel-day .day-num span { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--blue); color: #fff; }
 .wd-week.sel-day .wd-date { box-shadow: inset 0 0 0 2px var(--blue); color: var(--blue); }
-.wd-week.today.sel-day .wd-date { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--blue); color: #fff; }
 .day-num span, .wd-date { transition: box-shadow .15s ease; }
 
 .blocks { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; align-content: flex-start; min-height: 0; overflow-y: auto; scrollbar-width: none; }
@@ -207,7 +206,8 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 /* week view */
 .wd-week .wd-date { display: inline-grid; place-items: center; min-width: 28px; height: 28px; border-radius: 50%; font-size: 15px; margin-top: 2px; }
-.wd-week.today .wd-date { background: var(--blue); color: #fff; }
+.wd-week.today .wd-date { color: var(--blue); font-weight: 600; }
+.wcol.today { box-shadow: inset 0 0 0 2px var(--blue); }
 .wd-week .wd-total { font-size: 11px; color: var(--muted); min-height: 14px; }
 .wcol .blocks { gap: 6px; padding-top: 4px; }
 .wcol .block { width: var(--block-week); height: var(--block-week); border-radius: 50%; }
