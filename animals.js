@@ -123,16 +123,16 @@ const DEFS = [
   { // January
     name: "Penguin",
     strokes: [
-      // back of the neck, up over the crown, down the forehead to the beak
-      curve([27, 58], [21, 45], [20, 31], [25, 18], [36, 8], [50, 5], [61, 8], [68, 16]),
+      // facing left: back of the neck, up over the crown, down the forehead to the beak
+      curve([73, 58], [79, 45], [80, 31], [75, 18], [64, 8], [50, 5], [39, 8], [32, 16]),
       // beak: long and slim, curving slightly down to the tip
-      curve([68, 16], [79, 17], [89, 20], [97, 25]),
-      curve([97, 25], [88, 24], [78, 23], [69, 23]),
+      curve([32, 16], [21, 17], [11, 20], [3, 25]),
+      curve([3, 25], [12, 24], [22, 23], [31, 23]),
       // chin and throat down to the neck
-      curve([69, 23], [64, 31], [60, 41], [58, 51], [58, 58]),
+      curve([31, 23], [36, 31], [40, 41], [42, 51], [42, 58]),
       // cheek patch behind the eye
-      curve([41, 21], [42, 29], [47, 36], [54, 40]),
-      dots([55, 15])
+      curve([59, 21], [58, 29], [53, 36], [46, 40]),
+      dots([45, 15])
     ]
   },
   { // February
