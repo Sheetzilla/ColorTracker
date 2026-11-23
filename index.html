@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <title>ColorTracker</title>
+  <!-- Installable app -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ColorTracker">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="loading" class="loading">Loading…</div>
+
+  <!-- Sign-in screen -->
+  <div id="signin" class="signin hidden">
+    <div class="signin-card">
+      <div class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <h1>ColorTracker</h1>
+      <p>Log your sessions and watch your month fill with colour.</p>
+      <button id="signinBtn" class="btn primary">Sign in with Google</button>
+      <p id="signinError" class="error"></p>
+    </div>
+  </div>
+
+  <!-- Main app -->
+  <div id="app" class="app hidden">
+    <header class="topbar">
+      <button id="menuBtn" class="icon-btn" aria-label="Menu">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+      <button id="todayBtn" class="text-btn">Today</button>
+      <div class="period">
+        <button id="prevBtn" class="arrow-btn" aria-label="Previous">‹</button>
+        <h2 id="title" class="title"></h2>
+        <button id="nextBtn" class="arrow-btn" aria-label="Next">›</button>
+      </div>
+      <div class="view-toggle">
+        <button data-view="month" class="text-btn">Month</button>
+        <button data-view="week" class="text-btn">Week</button>
+      </div>
+      <button id="userBtn" class="avatar" aria-label="Account"></button>
+    </header>
+
+    <!-- Activity dots -->
+    <div id="dotsBar" class="dots-bar">
+      <button id="dotsPrev" class="arrow-btn" aria-label="Scroll left">‹</button>
+      <div id="dots" class="dots"></div>
+      <button id="dotsNext" class="arrow-btn" aria-label="Scroll right">›</button>
+    </div>
+
+    <section id="calendar" class="calendar"></section>
+  </div>
+
+  <!-- Side menu -->
+  <div id="scrim" class="scrim"></div>
+  <aside id="drawer" class="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div class="logo small" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <span>ColorTracker</span>
+      <button id="drawerClose" class="icon-btn" aria-label="Close menu">×</button>
+    </div>
+    <button id="addActivityBtn" class="btn add-btn">＋ New activity</button>
+    <h3 class="drawer-title">Activities</h3>
+    <p class="hint">Drag an activity onto a day to log a session. Tap one to edit it.</p>
+    <ul id="activityList" class="activity-list"></ul>
+    <div id="installBox" class="install-box hidden">
+      <h3 class="drawer-title">Get the app</h3>
+      <button id="installBtn" class="btn install-btn hidden">⬇ Install app</button>
+      <p id="iosHint" class="hint hidden">On iPhone: tap the <b>Share</b> button in Safari, then <b>Add to Home Screen</b>.</p>
+    </div>
+    <div class="gesture-help">
+      <h3 class="drawer-title">Gestures</h3>
+      <p>Hold a square and flick it away to delete it.</p>
+      <p>Two-finger tap: undo · Three-finger tap: redo<br>(Ctrl+Z / Ctrl+Y on a computer)</p>
+    </div>
+  </aside>
+
+  <!-- Bubbles: session details, activity info, account -->
+  <div id="popover" class="popover hidden"></div>
+
+  <!-- Add / edit activity -->
+  <dialog id="activityDialog" class="dialog">
+    <form id="activityForm">
+      <h3 id="dialogTitle">New activity</h3>
+      <label class="field">
+        <span>Name</span>
+        <input id="actName" required maxlength="40" placeholder="e.g. Study Russian" autocomplete="off">
+      </label>
+      <label class="field">
+        <span>Default session length (minutes)</span>
+        <input id="actMinutes" type="number" min="5" max="600" step="5" value="30">
+      </label>
+      <div class="field">
+        <span>Colour</span>
+        <div class="color-row">
+          <input id="actColor" type="color" aria-label="Colour">
+          <button type="button" id="autoColorBtn" class="btn small">Pick for me</button>
+        </div>
+        <div id="colorPreview" class="color-preview"></div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" id="deleteActivityBtn" class="btn danger hidden">Delete</button>
+        <span class="spacer"></span>
+        <button type="button" id="cancelBtn" class="btn">Cancel</button>
+        <button type="submit" class="btn primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
