@@ -324,14 +324,17 @@ function buildFish() {
     body.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]);
   }
   base.push(...body);
-  const tail = [[72, 20], [79, 15], [86, 10], [90, 22], [90, 30], [90, 38], [86, 50], [79, 45], [72, 40]];
+  const tail = [[72, 20], [79, 15], [86, 10], [90, 22], [85, 30], [90, 38], [86, 50], [79, 45], [72, 40]];   // notch in the middle
   base.push(...tail);
+  const fin = [[42, 29], [49, 31], [56, 34], [53, 39], [46.5, 41.5], [40.5, 42]];   // side fin, curving back and closing
+  base.push(...fin);
   const eye = [27, 25];
   base.push(eye);
   const extra = [];
   const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
   for (let i = 0; i < bodyN; i++) extra.push(mid(body[i], body[(i + 1) % bodyN]));
   for (let i = 0; i < tail.length - 1; i++) extra.push(mid(tail[i], tail[i + 1]));
+  for (let i = 0; i < fin.length - 1; i++) extra.push(mid(fin[i], fin[i + 1]));
   const taken = [...base, ...extra];
   const free = (p, d) => taken.every((q) => Math.hypot(p[0] - q[0], p[1] - q[1]) >= d);
   const inner = [];
@@ -341,10 +344,28 @@ function buildFish() {
       if (ins && free([x, y], 5) && Math.hypot(x - eye[0], y - eye[1]) > 7) inner.push([x, y]);
     }
   }
-  for (const p of [[80, 22], [84, 30], [80, 38], [76, 30]]) if (free(p, 5)) inner.push(p);
+  for (const p of [[80, 22], [80, 38], [77, 30]]) if (free(p, 5)) inner.push(p);
   inner.sort((p, q) => Math.hypot(p[0] - cx, p[1] - cy) - Math.hypot(q[0] - cx, q[1] - cy));
   extra.push(...inner);
   return { name: "Fish", base, extra };
 }
 
-export const ANIMALS = DEFS.map((d) => (d ? buildAnimal(d) : buildFish()));
+// Scale every animal to fill the same 100 × 60 box as much as it can (tall ones to
+// the full height, wide ones to the full width) so they all look the same size.
+// Dot size stays the same; only the spacing grows. `width` is the animal's own
+// trimmed width, so the calendar can hug the right edge and the gallery can centre it.
+// Fine-tune individual animals: 1 = fills the box, below 1 smaller, above 1 bigger.
+const SIZE = { Fish: 0.88, Snail: 0.88, Hedgehog: 0.88, Bunny: 1.12, Reindeer: 1.12 };
+
+function normalize(a, margin = 3.5) {
+  const pts = [...a.base, ...a.extra];
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const w = maxX - minX || 1, h = maxY - minY || 1;
+  const k = Math.min((100 - 2 * margin) / w, (60 - 2 * margin) / h) * (SIZE[a.name] || 1);
+  const offY = (60 - h * k) / 2;
+  const fit = ([x, y]) => [margin + (x - minX) * k, offY + (y - minY) * k];
+  return { name: a.name, base: a.base.map(fit), extra: a.extra.map(fit), width: w * k + 2 * margin };
+}
+
+export const ANIMALS = DEFS.map((d) => normalize(d ? buildAnimal(d) : buildFish()));
