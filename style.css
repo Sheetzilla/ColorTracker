@@ -130,9 +130,11 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 }
 @media (hover: hover) { .dot:hover { transform: scale(1.12); } }
 .add-dot {
-  background: #fff; color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer;
+  background: #fff; color: var(--muted); cursor: pointer;
   box-shadow: inset 0 0 0 2px var(--line);
+  display: grid; place-items: center;
 }
+.add-dot svg { width: 42%; height: 42%; display: block; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; pointer-events: none; }
 .add-dot:hover { color: var(--text); }
 
 /* draggable things: no text selection, no long-press menu */

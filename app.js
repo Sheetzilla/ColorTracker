@@ -443,7 +443,8 @@ function renderDots() {
     d.setAttribute("aria-label", a.name);
     box.append(d);
   }
-  const add = el("button", "dot add-dot", "+");
+  const add = el("button", "dot add-dot");
+  add.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
   add.id = "addDot";
   add.setAttribute("aria-label", "New activity");
   box.append(add);
