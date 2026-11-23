@@ -139,9 +139,9 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 [data-drag] { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 
 /* ---------- calendar ---------- */
-.calendar { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 8px 8px; }
+.calendar { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 8px 8px; overflow-y: auto; overscroll-behavior: contain; }
 .cal { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.cal-head { display: grid; grid-template-columns: var(--wkcol) repeat(7, minmax(0, 1fr)); align-items: end; padding-bottom: 4px; }
+.cal-head { position: sticky; top: 0; z-index: 3; background: var(--bg); display: grid; grid-template-columns: var(--wkcol) repeat(7, minmax(0, 1fr)); align-items: end; padding-bottom: 4px; }
 .wk-lbl, .wd { text-align: center; font-size: 14px; color: var(--text); }
 .wk-lbl { font-size: 13px; }
 .cal-body { flex: 1; min-height: 0; display: flex; }
@@ -188,9 +188,10 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 /* month fish */
 .box { position: relative; }
 .fish-in { position: absolute; display: flex; align-items: center; justify-content: flex-end; padding: 6px 4px 6px 8px; pointer-events: none; }
-.fish-out { flex: none; height: 72px; display: flex; justify-content: flex-end; padding: 6px 4px 0; pointer-events: none; }
+.animal-row { grid-column: 1 / -1; min-height: 0; display: flex; align-items: center; justify-content: flex-end; padding: 6px 4px 6px 8px; pointer-events: none; }
+.cal.tall { flex: none; }
 .fish { width: 100%; height: 100%; max-width: 230px; overflow: visible; }
-.fish-out .fish { width: auto; }
+.animal-row .fish { width: 100%; height: 100%; }
 .fish circle { transform-box: fill-box; transform-origin: center; }
 .fish circle.grey { fill: #c9ccd1; }
 .fish circle.pop { animation: dot-pop .5s cubic-bezier(.3,1.7,.5,1) .22s backwards; }
@@ -342,15 +343,30 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 }
 @keyframes toast-in { from { transform: translate(-50%, 12px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 
+/* ---------- installed iPhone app: clear the status bar and its blur ---------- */
+html { background: #fff; }
+.ios-app .app {
+  padding-top: max(calc(env(safe-area-inset-top) + 12px), 56px);
+  padding-bottom: max(env(safe-area-inset-bottom), 10px);
+}
+.ios-app .drawer { padding-top: max(calc(env(safe-area-inset-top) + 12px), 56px); }
+
 /* ---------- phone tweaks ---------- */
 @media (max-width: 480px) {
-  :root { --wkcol: 30px; }
-  .title { font-size: 18px; }
+  :root { --wkcol: 30px; --block: 20px; --block-week: 30px; --dot: 38px; }
+  .title { font-size: 19px; }
   .text-btn { font-size: 14px; }
+  .topbar { gap: 2px; }
   .view-toggle { gap: 2px; margin-right: 2px; }
   .arrow-btn { width: 20px; }
+  .calendar { padding: 0 4px 6px; }
   .day, .wcol { padding: 3px 2px; }
-  .wk-lbl, .wd, .wkno { font-size: 12px; }
+  .wd, .wkno { font-size: 15px; }
+  .wk-lbl { font-size: 12px; }
+  .day-num { font-size: 17px; line-height: 26px; margin-bottom: 3px; }
+  .day-num span { min-width: 26px; height: 26px; }
+  .blocks { gap: 3px; }
+  .wd-week .wd-date { font-size: 17px; min-width: 30px; height: 30px; }
   .wcol .blocks { gap: 4px; }
   .popover.sheet { left: 8px !important; right: 8px; top: auto !important; bottom: calc(8px + env(safe-area-inset-bottom)); width: auto; }
 }
@@ -365,7 +381,6 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
   .calendar { padding: 0 16px 16px; }
   .wd, .wk-lbl { font-size: 15px; }
   .day-num { font-size: 15px; line-height: 26px; }
-  .fish-out { height: 84px; }
   .day-num span { min-width: 26px; height: 26px; }
   .day, .wcol { padding: 6px; }
   .blocks { gap: 5px; }

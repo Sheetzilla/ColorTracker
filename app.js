@@ -534,13 +534,21 @@ function renderMonth() {
 
   $("#title").textContent = first.toLocaleDateString("en-GB", { month: narrow() ? "short" : "long", year: "numeric" });
 
-  const { wrap, wknos, box } = calendarShell(weeks, WEEKDAYS.map((w) => el("div", "wd", w)));
-  for (let r = 0; r < weeks; r++) wknos.append(el("div", "wkno", isoWeek(addDays(gridStart, r * 7))));
-
-  // Grid lines: solid next to real days, dashed between empty cells,
-  // and none inside the fish's corner so it has open water.
+  // No room for the animal after the last day? Add one extra row for it,
+  // as tall as the others; the calendar then scrolls a little.
   const total = weeks * 7;
   const trail = total - (lead + last.getDate());
+  const extraRow = trail < 2;
+  const { wrap, wknos, box } = calendarShell(weeks + (extraRow ? 1 : 0), WEEKDAYS.map((w) => el("div", "wd", w)));
+  for (let r = 0; r < weeks; r++) wknos.append(el("div", "wkno", isoWeek(addDays(gridStart, r * 7))));
+  if (extraRow) {
+    wknos.append(el("div", "wkno"));
+    wrap.classList.add("tall");
+    wrap.style.height = `calc((100% - 30px) * ${(weeks + 1) / weeks} + 30px)`;
+  }
+
+  // Grid lines: solid next to real days, dashed between empty cells,
+  // and none inside the animal's corner so it has open space.
   const inMonth = (i) => i >= lead && i < lead + last.getDate();
   const inFish = (i) => trail >= 2 && i >= total - trail;
   const lineKind = (a, b) => (inMonth(a) || inMonth(b)) ? "solid" : (inFish(a) && inFish(b)) ? "" : "dash";
@@ -550,6 +558,7 @@ function renderMonth() {
     const cell = el("div", "day");
     if (i % 7 < 6) { const k = lineKind(i, i + 1); if (k) cell.classList.add("br-" + k); }
     if (i + 7 < total) { const k = lineKind(i, i + 7); if (k) cell.classList.add("bb-" + k); }
+    else if (extraRow) cell.classList.add("bb-solid");   // line above the animal row
     if (d.getMonth() !== m) {
       cell.classList.add("out");   // other month: empty, no date
       box.append(cell);
@@ -568,8 +577,12 @@ function renderMonth() {
     cell.append(num, blocks);
     box.append(cell);
   }
-  addFish(wrap, box, weeks * 7 - (lead + last.getDate()), weeks, y, m);
-  $("#calendar").replaceChildren(wrap);
+  addFish(box, trail, weeks, extraRow, y, m);
+  const cal = $("#calendar");
+  const keepScroll = cal.dataset.month === `${y}-${m}` ? cal.scrollTop : 0;
+  cal.dataset.month = `${y}-${m}`;
+  cal.replaceChildren(wrap);
+  cal.scrollTop = keepScroll;
 }
 
 /* =========================================================
@@ -619,7 +632,7 @@ function animalSvg(y, m, { popFrom = Infinity, wiggle = false, align = "xMidYMid
   return { svg, count, baseN, sessions };
 }
 
-function addFish(wrap, box, trail, rows, y, m) {
+function addFish(box, trail, rows, extraRow, y, m) {
   const key = `${y}-${pad(m + 1)}`;
   const count = monthSessions(y, m).length;
   const baseN = ANIMALS[m].base.length;
@@ -631,7 +644,7 @@ function addFish(wrap, box, trail, rows, y, m) {
 
   const holder = el("div");
   holder.append(svg);
-  if (trail >= 2) {
+  if (!extraRow) {
     // Fits into the empty cells after the month's last day.
     holder.className = "fish-in";
     holder.style.left = `${((7 - trail) / 7) * 100}%`;
@@ -640,9 +653,9 @@ function addFish(wrap, box, trail, rows, y, m) {
     holder.style.height = `${(1 / rows) * 100}%`;
     box.append(holder);
   } else {
-    // No room at the end of the month: sits just below the calendar.
-    holder.className = "fish-out";
-    wrap.append(holder);
+    // Its own row at the bottom of the calendar, inside the outline.
+    holder.className = "animal-row";
+    box.append(holder);
   }
 }
 
@@ -926,6 +939,12 @@ function tick() {
   const targetRot = Math.max(-28, Math.min(28, dx * 0.9));
   drag.rot += (targetRot - drag.rot) * 0.22;
   drag.scale += ((drag.target ? 1.22 : 1.12) - drag.scale) * 0.2;
+  const cal = $("#calendar");
+  const cr = cal.getBoundingClientRect();
+  if (cal.scrollHeight > cal.clientHeight) {
+    if (drag.y > cr.bottom - 48) { cal.scrollTop += 9; updateTarget(); }
+    else if (drag.y < cr.top + 48 && drag.y > cr.top - 80) { cal.scrollTop -= 9; updateTarget(); }
+  }
   drag.ghost.style.transform = ghostTransform(drag);
   drag.raf = requestAnimationFrame(tick);
 }
@@ -1431,6 +1450,9 @@ const isInstalled = () =>
   window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+// Installed on an iPhone/iPad: the page runs under the status bar, so give it more room at the top.
+if (isIOS && isInstalled()) document.documentElement.classList.add("ios-app");
 
 let installPrompt = null;
 // Android / Chrome / Edge: offer a real "Install app" button.
