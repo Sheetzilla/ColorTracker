@@ -505,6 +505,7 @@ function renderCalendar() {
   if (!state.user) return;
   if (state.view === "week") renderWeek();
   else renderMonth();
+  markSelectedDay();
 }
 
 function calendarShell(rows, headCells) {
@@ -534,9 +535,19 @@ function renderMonth() {
   const { wrap, wknos, box } = calendarShell(weeks, WEEKDAYS.map((w) => el("div", "wd", w)));
   for (let r = 0; r < weeks; r++) wknos.append(el("div", "wkno", isoWeek(addDays(gridStart, r * 7))));
 
-  for (let i = 0; i < weeks * 7; i++) {
+  // Grid lines: solid next to real days, dashed between empty cells,
+  // and none inside the fish's corner so it has open water.
+  const total = weeks * 7;
+  const trail = total - (lead + last.getDate());
+  const inMonth = (i) => i >= lead && i < lead + last.getDate();
+  const inFish = (i) => trail >= 2 && i >= total - trail;
+  const lineKind = (a, b) => (inMonth(a) || inMonth(b)) ? "solid" : (inFish(a) && inFish(b)) ? "" : "dash";
+
+  for (let i = 0; i < total; i++) {
     const d = addDays(gridStart, i);
     const cell = el("div", "day");
+    if (i % 7 < 6) { const k = lineKind(i, i + 1); if (k) cell.classList.add("br-" + k); }
+    if (i + 7 < total) { const k = lineKind(i, i + 7); if (k) cell.classList.add("bb-" + k); }
     if (d.getMonth() !== m) {
       cell.classList.add("out");   // other month: empty, no date
       box.append(cell);
@@ -555,7 +566,102 @@ function renderMonth() {
     cell.append(num, blocks);
     box.append(cell);
   }
+  addFish(wrap, box, weeks * 7 - (lead + last.getDate()), weeks, y, m);
   $("#calendar").replaceChildren(wrap);
+}
+
+/* =========================================================
+   Month fish: grey dots that fill with colour, one per session
+   ========================================================= */
+const FISH = buildFish();
+const fishSeen = new Map();   // 'YYYY-MM' -> coloured dots last time, for the pop animation
+
+// Dot positions in a 100 × 60 box. Order = the order dots get coloured.
+// (Later, each month can use its own drawn fish: just another list like this.)
+function buildFish() {
+  const base = [];
+  const cx = 40, cy = 30, rx = 28, ry = 22, bodyN = 18;
+  const body = [];
+  for (let i = 0; i < bodyN; i++) {
+    const a = Math.PI + (i * 2 * Math.PI) / bodyN;   // starts at the nose, goes over the top
+    body.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]);
+  }
+  base.push(...body);
+  const tail = [[72, 20], [79, 15], [86, 10], [90, 22], [90, 30], [90, 38], [86, 50], [79, 45], [72, 40]];
+  base.push(...tail);
+  const eye = [27, 25];
+  base.push(eye);
+
+  // Extra dots for busy months: first between the outline dots, then filling the body.
+  const extra = [];
+  const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+  for (let i = 0; i < bodyN; i++) extra.push(mid(body[i], body[(i + 1) % bodyN]));
+  for (let i = 0; i < tail.length - 1; i++) extra.push(mid(tail[i], tail[i + 1]));
+  const taken = [...base, ...extra];
+  const free = (p, d) => taken.every((q) => Math.hypot(p[0] - q[0], p[1] - q[1]) >= d);
+  const inner = [];
+  for (let y = cy - ry + 6; y <= cy + ry - 6; y += 6) {
+    for (let x = cx - rx + 6; x <= cx + rx - 4; x += 6) {
+      const inside = ((x - cx) / (rx - 4)) ** 2 + ((y - cy) / (ry - 4)) ** 2 <= 1;
+      if (inside && free([x, y], 5) && Math.hypot(x - eye[0], y - eye[1]) > 7) inner.push([x, y]);
+    }
+  }
+  for (const p of [[80, 22], [84, 30], [80, 38], [76, 30]]) if (free(p, 5)) inner.push(p);   // tail fill
+  inner.sort((p, q) => Math.hypot(p[0] - cx, p[1] - cy) - Math.hypot(q[0] - cx, q[1] - cy));
+  extra.push(...inner);
+  return { base, extra };
+}
+
+function addFish(wrap, box, trail, rows, y, m) {
+  const key = `${y}-${pad(m + 1)}`;
+  const from = dateKey(new Date(y, m, 1)), to = dateKey(new Date(y, m + 1, 0));
+  const sessions = [...state.sessions.values()]
+    .filter((s) => s.date >= from && s.date <= to && state.activities.has(s.activityId))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt || 0) - (b.createdAt || 0)));
+  const count = sessions.length;
+  const points = [...FISH.base, ...FISH.extra];
+  const total = Math.min(points.length, Math.max(FISH.base.length, count));
+
+  const prev = fishSeen.get(key);
+  fishSeen.set(key, count);
+  const popFrom = prev !== undefined && count > prev ? prev : count;
+  const justCompleted = prev !== undefined && prev < FISH.base.length && count >= FISH.base.length;
+
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", "0 0 100 60");
+  svg.setAttribute("class", "fish" + (justCompleted ? " wiggle" : "") + (count >= FISH.base.length ? " full" : ""));
+  svg.setAttribute("aria-label", `Month fish: ${Math.min(count, total)} of ${FISH.base.length} dots coloured`);
+  for (let i = 0; i < total; i++) {
+    const c = document.createElementNS(NS, "circle");
+    c.setAttribute("cx", points[i][0].toFixed(1));
+    c.setAttribute("cy", points[i][1].toFixed(1));
+    c.setAttribute("r", i < FISH.base.length ? 2.7 : 2.2);
+    if (i < count) {
+      const s = sessions[i];
+      c.setAttribute("fill", shade(state.activities.get(s.activityId).color, s.minutes));
+      if (i >= popFrom) c.setAttribute("class", "pop");
+    } else {
+      c.setAttribute("class", "grey");
+    }
+    svg.append(c);
+  }
+
+  const holder = el("div");
+  holder.append(svg);
+  if (trail >= 2) {
+    // Fits into the empty cells after the month's last day.
+    holder.className = "fish-in";
+    holder.style.left = `${((7 - trail) / 7) * 100}%`;
+    holder.style.width = `${(trail / 7) * 100}%`;
+    holder.style.top = `${((rows - 1) / rows) * 100}%`;
+    holder.style.height = `${(1 / rows) * 100}%`;
+    box.append(holder);
+  } else {
+    // No room at the end of the month: sits just below the calendar.
+    holder.className = "fish-out";
+    wrap.append(holder);
+  }
 }
 
 function renderWeek() {
@@ -589,7 +695,7 @@ function renderWeek() {
     h.append(el("div", "", WEEKDAYS[i]), el("div", "wd-date", d.getDate()), el("div", "wd-total", total ? fmtShort(total) : ""));
     heads.push(h);
 
-    const c = el("div", "wcol");
+    const c = el("div", "wcol" + (i < 6 ? " br-solid" : ""));
     c.dataset.date = key;
     const blocks = el("div", "blocks");
     for (const s of list) {
@@ -617,7 +723,35 @@ function saveView() {
 
 $("#prevBtn").addEventListener("click", () => step(-1));
 $("#nextBtn").addEventListener("click", () => step(1));
-$("#todayBtn").addEventListener("click", () => { state.cursor = new Date(); closePopover(); render(); });
+$("#todayBtn").addEventListener("click", () => {
+  const now = new Date();
+  const already = state.view === "week"
+    ? dateKey(startOfWeek(state.cursor)) === dateKey(startOfWeek(now))
+    : state.cursor.getFullYear() === now.getFullYear() && state.cursor.getMonth() === now.getMonth();
+  state.cursor = now;
+  closePopover();
+  render();
+  const mark = document.querySelector("#calendar .day.today .day-num span, #calendar .wd-week.today .wd-date");
+  if (!mark) return;
+  if (already) {
+    // "You're already here": a little hop and wiggle.
+    mark.animate([
+      { transform: "translateY(0) rotate(0)" },
+      { transform: "translateY(-9px) rotate(-10deg)", offset: 0.25 },
+      { transform: "translateY(0) rotate(8deg)", offset: 0.5 },
+      { transform: "translateY(-4px) rotate(-4deg)", offset: 0.72 },
+      { transform: "translateY(0) rotate(0)" }
+    ], { duration: 650, easing: "ease-out" });
+    vibrate(6);
+  } else {
+    // Jumped back to today: pop so the eye finds it.
+    mark.animate([
+      { transform: "scale(.4)", opacity: 0.4 },
+      { transform: "scale(1.3)", opacity: 1, offset: 0.6 },
+      { transform: "scale(1)" }
+    ], { duration: 480, easing: "cubic-bezier(.3,1.5,.5,1)" });
+  }
+});
 document.querySelectorAll(".view-toggle button").forEach((b) =>
   b.addEventListener("click", () => { state.view = b.dataset.view; saveView(); closePopover(); render(); })
 );
@@ -1005,7 +1139,6 @@ const SESSION_HTML = `
     <strong class="pop-name"></strong>
     <button class="icon-btn" data-act="close" aria-label="Close">×</button>
   </div>
-  <div class="pop-date"></div>
   <div class="pop-dur">
     <button class="icon-btn" data-step="-15" aria-label="15 minutes less">−</button>
     <input type="number" min="5" max="1440" step="5" aria-label="Minutes">
@@ -1040,6 +1173,7 @@ function closePopover() {
   popEl.dataset.built = "";
   popEl.classList.add("hidden");
   popEl.innerHTML = "";
+  markSelectedDay();
 }
 
 function renderPopover() {
@@ -1051,7 +1185,6 @@ function renderPopover() {
     if (popEl.dataset.built !== "s:" + pop.id) { popEl.innerHTML = SESSION_HTML; popEl.dataset.built = "s:" + pop.id; }
     popEl.querySelector(".pop-dot").style.background = shade(a.color, s.minutes);
     popEl.querySelector(".pop-name").textContent = a.name;
-    popEl.querySelector(".pop-date").textContent = parseKey(s.date).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const inp = popEl.querySelector("input");
     if (document.activeElement !== inp) inp.value = s.minutes;
     popEl.querySelector(".pop-pretty").textContent = fmtMinutes(s.minutes);
@@ -1073,6 +1206,17 @@ function renderPopover() {
     }
   }
   popEl.classList.remove("hidden");
+  markSelectedDay();
+}
+
+// While a session's popup is open, ring that day's date in blue.
+function markSelectedDay() {
+  document.querySelectorAll(".sel-day").forEach((e) => e.classList.remove("sel-day"));
+  if (!pop || pop.type !== "session") return;
+  const s = state.sessions.get(pop.id);
+  if (!s) return;
+  document.querySelectorAll(`#calendar .day[data-date="${s.date}"], #calendar .wd-week[data-date="${s.date}"]`)
+    .forEach((e) => e.classList.add("sel-day"));
 }
 
 function positionPopover(anchor, mode) {
@@ -1152,19 +1296,33 @@ function openActivityDialog(id) {
   if (window.matchMedia("(hover: hover)").matches) setTimeout(() => $("#actName").focus(), 0);
 }
 
+// The shade circles double as quick buttons for the default length.
 function updatePreview() {
   const color = $("#actColor").value;
+  const current = Math.round(Number($("#actMinutes").value));
   const box = $("#colorPreview");
   box.innerHTML = "";
   for (const [m, label] of [[15, "15 min"], [30, "30 min"], [60, "1 h"], [120, "2 h"], [180, "3 h"]]) {
-    const d = el("div");
+    const b = el("button", m === current ? "sel" : "");
+    b.type = "button";
+    b.dataset.min = m;
+    b.setAttribute("aria-label", `Set default length to ${label}`);
     const i = el("i");
     i.style.background = shade(color, m);
-    d.append(i, label);
-    box.append(d);
+    b.append(i, label);
+    box.append(b);
   }
 }
 
+$("#colorPreview").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-min]");
+  if (!b) return;
+  $("#actMinutes").value = b.dataset.min;
+  updatePreview();
+  const i = $(`#colorPreview button[data-min="${b.dataset.min}"] i`);
+  if (i) i.animate([{ transform: "scale(1)" }, { transform: "scale(1.35)" }, { transform: "scale(1.12)" }], { duration: 260, easing: "ease-out" });
+});
+$("#actMinutes").addEventListener("input", updatePreview);
 $("#actColor").addEventListener("input", updatePreview);
 $("#autoColorBtn").addEventListener("click", () => {
   $("#actColor").value = autoColor(editingId, $("#actColor").value);
