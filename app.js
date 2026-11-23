@@ -610,7 +610,7 @@ function animalSvg(y, m, { popFrom = Infinity, wiggle = false, align = "xMidYMid
 
   const NS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(NS, "svg");
-  svg.setAttribute("viewBox", "0 0 100 60");
+  svg.setAttribute("viewBox", `0 0 ${animal.width.toFixed(1)} 60`);
   svg.setAttribute("preserveAspectRatio", `${align} meet`);
   svg.setAttribute("class", "fish" + (wiggle ? " wiggle" : "") + (count >= baseN ? " full" : ""));
   svg.setAttribute("role", "img");
@@ -1478,6 +1478,143 @@ if (isIOS && !isInstalled()) {
   $("#installBox").classList.remove("hidden");
   $("#iosHint").classList.remove("hidden");
 }
+
+/* =========================================================
+   Backup: download, restore, CSV
+   ========================================================= */
+const today = () => dateKey(new Date());
+
+function saveFile(name, text, type) {
+  const blob = new Blob([text], { type });
+  const file = new File([blob], name, { type });
+  // iPhone: the share sheet lets you save to Files / iCloud
+  if (isIOS && navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ files: [file], title: name }).catch(() => {});
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function needUser() {
+  if (state.user) return true;
+  toast("Sign in first.");
+  return false;
+}
+
+$("#backupBtn").addEventListener("click", () => {
+  if (!needUser()) return;
+  const data = {
+    app: "ColorTracker",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    activities: [...state.activities.values()],
+    sessions: [...state.sessions.values()]
+  };
+  saveFile(`colortracker-backup-${today()}.json`, JSON.stringify(data, null, 1), "application/json");
+  toast(`Backup saved: ${data.activities.length} activities, ${data.sessions.length} sessions.`);
+});
+
+$("#csvBtn").addEventListener("click", () => {
+  if (!needUser()) return;
+  const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const rows = [["Date", "Week", "Activity", "Minutes", "Colour"].map(q).join(";")];
+  const list = [...state.sessions.values()].sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt || 0) - (b.createdAt || 0));
+  for (const s of list) {
+    const act = state.activities.get(s.activityId);
+    rows.push([s.date, isoWeek(parseKey(s.date)), act ? act.name : "(deleted)", s.minutes, act ? act.color : ""].map(q).join(";"));
+  }
+  // semicolons + BOM so Excel (also Finnish Excel) splits columns and keeps ä/ö
+  saveFile(`colortracker-sessions-${today()}.csv`, "﻿" + rows.join("\r\n"), "text/csv");
+  toast(`Exported ${list.length} sessions.`);
+});
+
+/* --- restore --- */
+const restoreDlg = $("#restoreDialog");
+let pendingRestore = null;
+
+$("#restoreBtn").addEventListener("click", () => {
+  if (!needUser()) return;
+  $("#restoreFile").value = "";
+  $("#restoreFile").click();
+});
+
+const isId = (v) => typeof v === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(v);
+const isHex = (v) => typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v);
+const isDate = (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+const num = (v, lo, hi, dflt) => (Number.isFinite(+v) ? Math.min(hi, Math.max(lo, Math.round(+v))) : dflt);
+
+function parseBackup(text) {
+  let raw;
+  try { raw = JSON.parse(text); } catch { throw new Error("That file isn't a ColorTracker backup."); }
+  if (!raw || raw.app !== "ColorTracker" || !Array.isArray(raw.activities) || !Array.isArray(raw.sessions)) {
+    throw new Error("That file isn't a ColorTracker backup.");
+  }
+  const activities = [];
+  for (const a of raw.activities) {
+    if (!a || !isId(a.id) || typeof a.name !== "string" || !a.name.trim()) continue;
+    activities.push({ id: a.id, data: {
+      name: a.name.trim().slice(0, 40),
+      color: isHex(a.color) ? a.color : autoColor(),
+      defaultMinutes: num(a.defaultMinutes, 5, 600, 30),
+      createdAt: num(a.createdAt, 0, 9e15, Date.now())
+    }});
+  }
+  const known = new Set(activities.map((a) => a.id));
+  const sessions = [];
+  for (const x of raw.sessions) {
+    if (!x || !isId(x.id) || !known.has(x.activityId) || !isDate(x.date)) continue;
+    sessions.push({ id: x.id, data: {
+      activityId: x.activityId, date: x.date,
+      minutes: num(x.minutes, 1, 1440, 30),
+      createdAt: num(x.createdAt, 0, 9e15, Date.now())
+    }});
+  }
+  return { activities, sessions, exportedAt: raw.exportedAt };
+}
+
+$("#restoreFile").addEventListener("change", async (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  try {
+    pendingRestore = parseBackup(await f.text());
+  } catch (err) {
+    toast(err.message);
+    return;
+  }
+  const when = pendingRestore.exportedAt ? new Date(pendingRestore.exportedAt) : null;
+  $("#restoreInfo").textContent =
+    `${pendingRestore.activities.length} activities, ${pendingRestore.sessions.length} sessions` +
+    (when && !isNaN(when) ? ` · saved ${when.toLocaleDateString()}` : "");
+  restoreDlg.querySelector('input[value="merge"]').checked = true;
+  closeDrawer();
+  restoreDlg.showModal();
+});
+
+$("#restoreCancel").addEventListener("click", () => { pendingRestore = null; restoreDlg.close(); });
+
+$("#restoreGo").addEventListener("click", () => {
+  if (!pendingRestore || !state.user) return;
+  const mode = restoreDlg.querySelector('input[name="restoreMode"]:checked').value;
+  if (mode === "replace" && !confirm("Delete all your current activities and sessions and replace them with the backup?")) return;
+  const ops = [];
+  if (mode === "replace") {
+    const keepA = new Set(pendingRestore.activities.map((a) => a.id));
+    const keepS = new Set(pendingRestore.sessions.map((s) => s.id));
+    for (const id of state.sessions.keys()) if (!keepS.has(id)) ops.push({ name: "sessions", id });
+    for (const id of state.activities.keys()) if (!keepA.has(id)) ops.push({ name: "activities", id });
+  }
+  for (const a of pendingRestore.activities) ops.push({ set: true, name: "activities", id: a.id, data: a.data });
+  for (const s of pendingRestore.sessions) ops.push({ set: true, name: "sessions", id: s.id, data: s.data });
+  batchWrite(ops);
+  history.undo = []; history.redo = [];   // a restore can't be undone step by step
+  toast(`Restored ${pendingRestore.activities.length} activities and ${pendingRestore.sessions.length} sessions.`);
+  pendingRestore = null;
+  restoreDlg.close();
+});
 
 /* =========================================================
    Toast

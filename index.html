@@ -79,6 +79,13 @@
       </button>
       <div id="galleryGrid" class="gallery-grid hidden"></div>
     </div>
+    <div class="backup">
+      <h3 class="drawer-title">Backup</h3>
+      <button id="backupBtn" class="btn backup-btn" type="button">⬇ Download backup</button>
+      <button id="restoreBtn" class="btn backup-btn" type="button">⬆ Restore from backup</button>
+      <button id="csvBtn" class="btn backup-btn" type="button">📄 Export CSV (for Excel / Sheets)</button>
+      <input id="restoreFile" type="file" accept=".json,application/json" hidden>
+    </div>
     <div id="installBox" class="install-box hidden">
       <h3 class="drawer-title">Get the app</h3>
       <button id="installBtn" class="btn install-btn hidden">⬇ Install app</button>
@@ -90,6 +97,22 @@
       <p>Two-finger tap: undo · Three-finger tap: redo<br>(Ctrl+Z / Ctrl+Y on a computer)</p>
     </div>
   </aside>
+
+  <dialog id="restoreDialog" class="dialog">
+    <form method="dialog">
+      <h3>Restore backup</h3>
+      <p id="restoreInfo" class="restore-info"></p>
+      <label class="restore-opt"><input type="radio" name="restoreMode" value="merge" checked>
+        <span><b>Merge</b><br>Add back everything in the backup. Nothing you logged after it is removed.</span></label>
+      <label class="restore-opt"><input type="radio" name="restoreMode" value="replace">
+        <span><b>Replace everything</b><br>Delete all current data first, so it matches the backup exactly.</span></label>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" id="restoreCancel" class="btn">Cancel</button>
+        <button type="button" id="restoreGo" class="btn primary">Restore</button>
+      </div>
+    </form>
+  </dialog>
 
   <!-- Bubbles: session details, activity info, account -->
   <div id="popover" class="popover hidden"></div>

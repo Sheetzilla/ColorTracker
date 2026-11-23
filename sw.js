@@ -3,7 +3,7 @@
 // - Firebase code and fonts: saved once, then loaded from the device.
 // - Your data and sign-in are NOT touched here; Firebase handles those itself.
 
-const CACHE = "colortracker-v2";
+const CACHE = "colortracker-v3";
 const SHELL = [
   "./",
   "./index.html",
