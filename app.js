@@ -630,6 +630,7 @@ function addFish(wrap, box, trail, rows, y, m) {
   const NS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("viewBox", "0 0 100 60");
+  svg.setAttribute("preserveAspectRatio", "xMaxYMid meet");   // hug the right edge
   svg.setAttribute("class", "fish" + (justCompleted ? " wiggle" : "") + (count >= FISH.base.length ? " full" : ""));
   svg.setAttribute("aria-label", `Month fish: ${Math.min(count, total)} of ${FISH.base.length} dots coloured`);
   for (let i = 0; i < total; i++) {
