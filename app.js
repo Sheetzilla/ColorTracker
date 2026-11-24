@@ -617,12 +617,12 @@ function renderMonth() {
   }
   addFish(box, trail, weeks, extraRow, y, m);
   const cal = $("#calendar");
-  const keepScroll = cal.dataset.month === `${y}-${m}` ? cal.scrollTop : 0;
+  const keepScroll = cal.dataset.month === `${y}-${m}` ? window.scrollY : 0;
   cal.dataset.month = `${y}-${m}`;
   const cellScroll = saveCellScroll();
   cal.replaceChildren(wrap);
-  sizeRows(wrap, weeks);
-  cal.scrollTop = keepScroll;
+  sizeRows(wrap, weeks + (extraRow ? 1 : 0));   // the animal's extra row fits on screen too
+  window.scrollTo(0, keepScroll);
   restoreCellScroll(cellScroll);
 }
 
@@ -651,14 +651,34 @@ $("#calendar").addEventListener("scroll", (e) => {
   if (e.target.classList && e.target.classList.contains("blocks")) updateFade(e.target);
 }, true);
 
+// The weekday row pins right under the pinned top part, whatever its height.
+new ResizeObserver(() => {
+  document.documentElement.style.setProperty("--top-h", `${$("#appTop").offsetHeight}px`);
+}).observe($("#appTop"));
+
 // Base row height: the month's weeks fill the screen. A row with lots of
 // circles grows taller than this, and the calendar then scrolls.
 function sizeRows(wrap, rowsOnScreen, reserve = 0) {
   const cal = $("#calendar");
   const head = wrap.querySelector(".cal-head");
-  const padBottom = parseFloat(getComputedStyle(cal).paddingBottom) || 0;
-  const avail = cal.clientHeight - padBottom - (head ? head.offsetHeight : 30) - 4 - reserve;   // 4 = box outline
-  wrap.style.setProperty("--rowh", `${Math.max(56, Math.floor(avail / rowsOnScreen))}px`);
+  const padBottom = (parseFloat(getComputedStyle(cal).paddingBottom) || 0) + (parseFloat(getComputedStyle($("#app")).paddingBottom) || 0);
+  const topH = $("#appTop").offsetHeight;
+  const avail = window.innerHeight - topH - padBottom - (head ? head.offsetHeight : 30) - 4 - reserve;   // 4 = box outline
+  wrap.style.setProperty("--rowh", `${Math.max(minRowHeight(wrap), Math.floor(avail / rowsOnScreen))}px`);
+}
+
+// Smallest a month row may get: the date plus two full lines of squares. If the screen is too
+// short for that, the rows keep this size and the page scrolls instead of squeezing them.
+function minRowHeight(wrap) {
+  const cell = wrap.querySelector(".day[data-date]");
+  if (!cell) return 56;   // week view: one tall row, nothing to squeeze
+  const cs = getComputedStyle(cell);
+  const num = cell.querySelector(".day-num");
+  const numH = num.offsetHeight + (parseFloat(getComputedStyle(num).marginBottom) || 0);
+  const blocks = cell.querySelector(".blocks");
+  const gap = parseFloat(getComputedStyle(blocks).rowGap) || 0;
+  const block = parseFloat(getComputedStyle(wrap).getPropertyValue("--block")) || 16;
+  return Math.ceil((parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0) + numH + 2 * block + gap + 4);
 }
 
 /* =========================================================
@@ -1101,7 +1121,7 @@ $("#swipeToggle").addEventListener("change", (e) => {
 function buildNeighbour(dir) {
   const cal = $("#calendar");
   const current = cal.firstElementChild;
-  const saved = { cursor: state.cursor, scroll: cal.scrollTop, title: $("#title").textContent, month: cal.dataset.month };
+  const saved = { cursor: state.cursor, scroll: window.scrollY, title: $("#title").textContent, month: cal.dataset.month };
   state.cursor = neighbourCursor(dir);
   if (state.view === "week") renderWeek(); else renderMonth();
   const node = cal.firstElementChild;
@@ -1109,7 +1129,7 @@ function buildNeighbour(dir) {
   state.cursor = saved.cursor;
   $("#title").textContent = saved.title;
   if (saved.month === undefined) delete cal.dataset.month; else cal.dataset.month = saved.month;
-  cal.scrollTop = saved.scroll;
+  window.scrollTo(0, saved.scroll);
   return node;
 }
 
@@ -1374,11 +1394,11 @@ function tick() {
   const targetRot = Math.max(-28, Math.min(28, dx * 0.9));
   drag.rot += (targetRot - drag.rot) * 0.22;
   drag.scale += ((drag.target ? 1.22 : 1.12) - drag.scale) * 0.2;
-  const cal = $("#calendar");
-  const cr = cal.getBoundingClientRect();
-  if (cal.scrollHeight > cal.clientHeight) {
-    if (drag.y > cr.bottom - 48) { cal.scrollTop += 9; updateTarget(); }
-    else if (drag.y < cr.top + 48 && drag.y > cr.top - 80) { cal.scrollTop -= 9; updateTarget(); }
+  // Dragging near the bottom / just under the pinned top scrolls the page.
+  const pageTop = $("#appTop").getBoundingClientRect().bottom;
+  if (document.documentElement.scrollHeight > window.innerHeight) {
+    if (drag.y > window.innerHeight - 48) { window.scrollBy(0, 9); updateTarget(); }
+    else if (drag.y < pageTop + 48 && drag.y > pageTop - 80) { window.scrollBy(0, -9); updateTarget(); }
   }
   drag.ghost.style.transform = ghostTransform(drag);
   drag.raf = requestAnimationFrame(tick);

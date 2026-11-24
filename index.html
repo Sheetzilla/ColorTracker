@@ -71,6 +71,8 @@
 
   <!-- Main app -->
   <div id="app" class="app hidden">
+    <!-- Pinned top: stays in place while the page scrolls -->
+    <div id="appTop" class="app-top">
     <header class="topbar">
       <button id="menuBtn" class="icon-btn" aria-label="Menu">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
@@ -96,6 +98,7 @@
         <button id="addDot" class="dot add-dot" aria-label="New activity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
       </div>
       <button id="dotsNext" class="arrow-btn" aria-label="Scroll right">›</button>
+    </div>
     </div>
 
     <section id="calendar" class="calendar"></section>

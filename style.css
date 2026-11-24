@@ -134,13 +134,14 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .error { color: var(--red) !important; font-size: 14px; margin-top: 14px !important; }
 
 /* ---------- layout ---------- */
+/* The page itself scrolls (normal browser scroll bar); the top part and the weekday row stay pinned. */
 .app {
   display: flex; flex-direction: column;
-  height: 100vh; height: 100dvh;
+  min-height: 100vh; min-height: 100dvh;
   max-width: 1100px; margin: 0 auto;
-  padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
+.app-top { position: sticky; top: 0; z-index: 6; background: var(--bg); padding-top: env(safe-area-inset-top); }
 .topbar { display: flex; align-items: center; gap: 4px; padding: 8px 8px 2px; flex: none; }
 .period { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 2px; }
 .title {
@@ -184,16 +185,16 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 [data-drag] { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 
 /* ---------- calendar ---------- */
-.calendar { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 8px 8px; overflow-y: auto; overscroll-behavior: contain;
+.calendar { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 8px 8px;
   touch-action: pan-y; }   /* sideways finger moves stay with the app (for swiping months/weeks) */
 .calendar .blocks { touch-action: pan-y; }   /* busy days scroll on their own, so they need it too */
 /* phone: week numbers hidden (double-tap the left side) */
 .calendar.no-wk { --wkcol: 4px; }
 .calendar.no-wk .wk-lbl, .calendar.no-wk .wknos { visibility: hidden; overflow: hidden; }
 /* swiping: the next month/week is laid next to the current one and slides in */
-.calendar { position: relative; overflow-x: hidden; }
+.calendar { position: relative; overflow-x: clip; }
 .cal { flex: none; display: flex; flex-direction: column; }
-.cal-head { position: sticky; top: 0; z-index: 3; background: var(--bg); display: grid; grid-template-columns: var(--wkcol) repeat(7, minmax(0, 1fr)); align-items: end; padding-bottom: 4px; }
+.cal-head { position: sticky; top: var(--top-h, 0px); z-index: 3; background: var(--bg); display: grid; grid-template-columns: var(--wkcol) repeat(7, minmax(0, 1fr)); align-items: end; padding-bottom: 4px; }
 .wk-lbl, .wd { text-align: center; font-size: 14px; color: var(--text); }
 .wk-lbl { font-size: 13px; }
 .cal-body {
@@ -468,10 +469,8 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 
 /* ---------- installed iPhone app: clear the status bar and its blur ---------- */
 html { background: #fff; }
-.ios-app .app {
-  padding-top: max(calc(env(safe-area-inset-top) + 12px), 56px);
-  padding-bottom: max(env(safe-area-inset-bottom), 10px);
-}
+.ios-app .app { padding-bottom: max(env(safe-area-inset-bottom), 10px); }
+.ios-app .app-top { padding-top: max(calc(env(safe-area-inset-top) + 12px), 56px); }
 .ios-app .drawer { padding-top: max(calc(env(safe-area-inset-top) + 12px), 56px); }
 
 /* ---------- phone tweaks ---------- */
