@@ -148,10 +148,6 @@
     <div class="settings">
       <h3 class="drawer-title">Settings</h3>
       <label class="switch-row">
-        <span>Ask before deleting activities</span>
-        <input type="checkbox" id="askDeleteToggle" class="switch" role="switch">
-      </label>
-      <label class="switch-row">
         <span>Swipe to change month / week</span>
         <input type="checkbox" id="swipeToggle" class="switch" role="switch">
       </label>
@@ -196,12 +192,11 @@
     </form>
   </dialog>
 
-  <!-- Asks before deleting an activity that has sessions -->
+  <!-- Asks before deleting an activity (and whether its logged sessions go too) -->
   <dialog id="confirmDeleteDialog" class="dialog">
     <form method="dialog">
       <h3 id="cdTitle" tabindex="-1" autofocus>Delete activity?</h3>
-      <p id="cdText" class="restore-info"></p>
-      <label class="check-row"><input type="checkbox" id="cdDontAsk"> Don't notify again</label>
+      <label id="cdSessionsRow" class="check-row"><input type="checkbox" id="cdDeleteSessions" checked> <span id="cdSessionsText"></span></label>
       <div class="dialog-actions">
         <span class="spacer"></span>
         <button class="btn" value="cancel">Cancel</button>

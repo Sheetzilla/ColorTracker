@@ -180,6 +180,8 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 }
 .add-dot svg { width: 42%; height: 42%; display: block; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; pointer-events: none; }
 .add-dot:hover { color: var(--text); }
+/* reordering: the dragged dot's spot in the row shows as a faint ring */
+.dot.reorder-slot { background: transparent !important; box-shadow: inset 0 0 0 2px var(--line); transform: none !important; }
 
 /* draggable things: no text selection, no long-press menu */
 [data-drag] { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }

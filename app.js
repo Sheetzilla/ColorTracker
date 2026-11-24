@@ -5,7 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js";
 import {
   initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
-  collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch
+  collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 import { ANIMALS } from "./animals.js";
@@ -394,6 +394,37 @@ function updateActivity(id, after) {
   });
 }
 
+// "Delete" but keep its logged sessions: the activity is only hidden (the squares need its name and colour).
+function hideActivity(id) {
+  const a = state.activities.get(id);
+  if (!a) return;
+  patch("activities", id, { hidden: true });
+  record({
+    label: `removed ${a.name}`,
+    undo: () => patch("activities", id, { hidden: false }),
+    redo: () => patch("activities", id, { hidden: true })
+  });
+}
+
+// Saves a new dot order (list of activity ids, first = leftmost).
+function reorderActivities(ids) {
+  const before = new Map(sortedActivities().map((a) => [a.id, a.order]));
+  const write = (orderOf) => {
+    const b = writeBatch(db);
+    for (const id of ids) {
+      const o = orderOf(id);
+      b.update(docRef("activities", id), { order: o === undefined ? deleteField() : o });
+    }
+    b.commit().catch(onDbError);
+  };
+  write((id) => ids.indexOf(id));
+  record({
+    label: "reordered activities",
+    undo: () => write((id) => before.get(id)),
+    redo: () => write((id) => ids.indexOf(id))
+  });
+}
+
 function deleteActivity(id) {
   const a = state.activities.get(id);
   if (!a) return;
@@ -423,8 +454,12 @@ function render() {
   renderCalendar();
 }
 
+// Activities shown as dots / in the menu: not hidden, in the user's order (new ones go last).
 function sortedActivities() {
-  return [...state.activities.values()].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  const ord = (a) => (typeof a.order === "number" ? a.order : Infinity);
+  return [...state.activities.values()]
+    .filter((a) => !a.hidden)
+    .sort((a, b) => ord(a) - ord(b) || (a.createdAt || 0) - (b.createdAt || 0));
 }
 
 function currentRange() {
@@ -1404,7 +1439,67 @@ function tick() {
   drag.raf = requestAnimationFrame(tick);
 }
 
+/* ---------- Reordering dots: drag a dot sideways within the top row ---------- */
+function overDotRow(d) {
+  const r = $("#dotsBar").getBoundingClientRect();
+  return d.kind === "activity" && d.fromDot && d.y >= r.top - 12 && d.y <= r.bottom + 12;
+}
+// Moves elements in a container and animates everyone sliding to their new places.
+function flipMove(box, mutate) {
+  const before = new Map([...box.children].map((c) => [c, c.getBoundingClientRect().left]));
+  mutate();
+  for (const c of box.children) {
+    const dx = (before.get(c) ?? c.getBoundingClientRect().left) - c.getBoundingClientRect().left;
+    if (dx) c.animate([{ transform: `translateX(${dx}px)` }, { transform: "none" }], { duration: 180, easing: "ease-out" });
+  }
+}
+function dotOrder() { return [...$("#dots").children].map((c) => c.dataset.id); }
+function setDotOrder(ids) {
+  const box = $("#dots");
+  flipMove(box, () => ids.forEach((id) => { const c = box.querySelector(`[data-id="${id}"]`); if (c) box.append(c); }));
+}
+function previewReorder() {
+  const box = $("#dots");
+  if (!box.contains(drag.el)) drag.el = box.querySelector(`[data-id="${drag.id}"]`) || drag.el;   // row was redrawn
+  if (!drag.origOrder) drag.origOrder = dotOrder();
+  drag.el.classList.add("reorder-slot");
+  const others = [...box.children].filter((c) => c !== drag.el);
+  let idx = others.length;
+  for (let i = 0; i < others.length; i++) {
+    const r = others[i].getBoundingClientRect();
+    if (drag.x < r.left + r.width / 2) { idx = i; break; }
+  }
+  if (idx !== [...box.children].indexOf(drag.el)) {
+    flipMove(box, () => box.insertBefore(drag.el, others[idx] || null));
+    vibrate(4);
+  }
+  // Near the row's ends: scroll it one dot at a time so dots further along can be reached.
+  const br = box.getBoundingClientRect();
+  const now = performance.now();
+  if (!drag.lastRowScroll || now - drag.lastRowScroll > 380) {
+    if (drag.x > br.right - 24 && box.scrollLeft + box.clientWidth < box.scrollWidth - 2) { box.scrollBy({ left: dotStep() }); drag.lastRowScroll = now; }
+    else if (drag.x < br.left + 24 && box.scrollLeft > 2) { box.scrollBy({ left: -dotStep() }); drag.lastRowScroll = now; }
+  }
+}
+function endReorderPreview(d, keep) {
+  if (!d.origOrder) return;
+  const el = $("#dots").querySelector(`[data-id="${d.id}"]`);
+  if (el) el.classList.remove("reorder-slot");
+  if (!keep) setDotOrder(d.origOrder);
+}
+
 function updateTarget() {
+  if (overDotRow(drag)) {   // over the top row: reorder instead of aiming at a day
+    if (drag.target) { drag.target.classList.remove("drop-target"); drag.target = null; }
+    drag.reordering = true;
+    previewReorder();
+    return;
+  }
+  if (drag.reordering) {    // left the row again: put the dots back for now
+    drag.reordering = false;
+    endReorderPreview(drag, false);
+    drag.origOrder = null;
+  }
   const under = document.elementFromPoint(drag.x, drag.y);
   const target = under ? under.closest("#calendar [data-date]") : null;
   if (target !== drag.target) {
@@ -1429,6 +1524,7 @@ function takeDrag() {
 function cancelDrag() {
   if (!drag) return;
   const d = takeDrag();
+  endReorderPreview(d, false);
   if (d.ghost) d.ghost.remove();
   if (d.el) d.el.classList.remove("picked");
 }
@@ -1448,6 +1544,15 @@ function velocity(d, releaseTime) {
 function release(releaseTime) {
   const d = takeDrag();
   const v = velocity(d, releaseTime);
+
+  // Let go inside the top row: keep the new dot order.
+  if (d.reordering) {
+    const ids = dotOrder();
+    endReorderPreview(d, true);
+    if (ids.join() !== d.origOrder.join()) reorderActivities(ids);
+    return springBack(d);
+  }
+  endReorderPreview(d, false);
 
   // Flick to delete
   if (d.kind === "session" && v.speed > FLICK_SPEED && v.dist > FLICK_DIST) {
@@ -1902,46 +2007,30 @@ $("#deleteActivityBtn").addEventListener("click", () => {
   requestDeleteActivity(editingId, () => dlg.close());
 });
 
-/* ---------- Deleting an activity: ask first (can be switched off in Settings) ---------- */
-const ASK_DELETE_KEY = "ct-ask-delete";
-function askBeforeDelete() {
-  try { return localStorage.getItem(ASK_DELETE_KEY) !== "0"; } catch { return true; }
-}
-function setAskBeforeDelete(on) {
-  try { localStorage.setItem(ASK_DELETE_KEY, on ? "1" : "0"); } catch { /* ignore */ }
-  $("#askDeleteToggle").checked = on;
-}
-$("#askDeleteToggle").checked = askBeforeDelete();
-$("#askDeleteToggle").addEventListener("change", (e) => setAskBeforeDelete(e.target.checked));
-
+/* ---------- Deleting an activity: always asks; a tick box decides whether its logged sessions go too ---------- */
 const confirmDlg = $("#confirmDeleteDialog");
 let pendingDelete = null;   // { id, before }
 
 function requestDeleteActivity(id, before) {
   if (!state.activities.has(id)) return;
   const n = sessionsOf(id).length;
-  if (!askBeforeDelete()) return doDeleteActivity(id, before);
   pendingDelete = { id, before };
   $("#cdTitle").textContent = `Delete ${actName(id)}?`;
-  // Only mention sessions when there are some on the calendar.
-  $("#cdText").textContent = n ? `This will also delete ${n} session${n === 1 ? "" : "s"} from calendar.` : "";
-  $("#cdText").classList.toggle("hidden", !n);
-  $("#cdDontAsk").checked = false;
+  $("#cdSessionsText").textContent = `Also delete its ${n} session${n === 1 ? "" : "s"} from the calendar`;
+  $("#cdSessionsRow").classList.toggle("hidden", !n);   // nothing logged: nothing to ask
+  $("#cdDeleteSessions").checked = true;
   confirmDlg.returnValue = "";
   confirmDlg.showModal();
-}
-function doDeleteActivity(id, before) {
-  if (before) before();
-  const name = actName(id);
-  deleteActivity(id);
-  toast(`Deleted ${name}`);
 }
 confirmDlg.addEventListener("close", () => {
   const p = pendingDelete;
   pendingDelete = null;
   if (!p || confirmDlg.returnValue !== "accept") return;
-  if ($("#cdDontAsk").checked) setAskBeforeDelete(false);
-  doDeleteActivity(p.id, p.before);
+  const keep = sessionsOf(p.id).length > 0 && !$("#cdDeleteSessions").checked;
+  if (p.before) p.before();
+  const name = actName(p.id);
+  if (keep) hideActivity(p.id); else deleteActivity(p.id);
+  toast(keep ? `Removed ${name} (sessions kept)` : `Deleted ${name}`);
 });
 
 /* =========================================================
