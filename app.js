@@ -1050,42 +1050,138 @@ document.querySelectorAll(".view-toggle button").forEach((b) =>
   b.addEventListener("click", () => { state.view = b.dataset.view; saveView(); closePopover(); render(); })
 );
 
-function step(dir) {
+function neighbourCursor(dir) {
   const c = state.cursor;
-  state.cursor = state.view === "week" ? addDays(c, 7 * dir) : new Date(c.getFullYear(), c.getMonth() + dir, 1);
+  return state.view === "week" ? addDays(c, 7 * dir) : new Date(c.getFullYear(), c.getMonth() + dir, 1);
+}
+
+function step(dir) {
+  state.cursor = neighbourCursor(dir);
   closePopover();
   render();
 }
 
-/* ---------- Touch: swipe left/right on the calendar = next/previous month or week ---------- */
-const SWIPE_MIN = 60;       // px sideways
-const SWIPE_RATIO = 1.5;    // must be this much more sideways than up/down
-const SWIPE_MAX_MS = 700;
+/* =========================================================
+   Touch: drag the calendar sideways to see the next / previous month or week
+   slide in, let go to switch (or it springs back). Can be switched off in Settings.
+   ========================================================= */
+const SWIPE_START = 12;      // px sideways before the calendar starts following the finger
+const SWIPE_RATIO = 1.5;     // must be this much more sideways than up/down
+const SWIPE_COMMIT = 0.25;   // share of the width to drag before it switches on release
+const SWIPE_FLICK = 0.5;     // px per ms: a quick flick switches even if short
+const SLIDE_MS = 350;        // finishing slide
+const BACK_MS = 250;         // spring back
+const SWIPE_KEY = "ct-swipe";   // "0" = swiping switched off in Settings
 let swipe = null;
+let swipeBusy = false;          // a slide is finishing
+
+function swipeOn() { try { return localStorage.getItem(SWIPE_KEY) !== "0"; } catch { return true; } }
+$("#swipeToggle").checked = swipeOn();
+$("#swipeToggle").addEventListener("change", (e) => {
+  try { localStorage.setItem(SWIPE_KEY, e.target.checked ? "1" : "0"); } catch { /* ignore */ }
+});
+
+// Renders the month/week next to the current one and returns it, leaving the current one as it was.
+function buildNeighbour(dir) {
+  const cal = $("#calendar");
+  const current = cal.firstElementChild;
+  const saved = { cursor: state.cursor, scroll: cal.scrollTop, title: $("#title").textContent, month: cal.dataset.month };
+  state.cursor = neighbourCursor(dir);
+  if (state.view === "week") renderWeek(); else renderMonth();
+  const node = cal.firstElementChild;
+  cal.replaceChildren(current);
+  state.cursor = saved.cursor;
+  $("#title").textContent = saved.title;
+  if (saved.month === undefined) delete cal.dataset.month; else cal.dataset.month = saved.month;
+  cal.scrollTop = saved.scroll;
+  return node;
+}
+
+function placePreview(s) {
+  const cal = $("#calendar");
+  if (s.preview) s.preview.remove();
+  s.preview = buildNeighbour(s.dir);
+  Object.assign(s.preview.style, {
+    position: "absolute", top: `${s.cur.offsetTop}px`, left: `${s.cur.offsetLeft}px`,
+    width: `${s.cur.offsetWidth}px`, pointerEvents: "none"
+  });
+  cal.append(s.preview);
+}
+
+// The incoming month/week is dimmed ("not active yet"): 40% at the start, up to 65% as you drag,
+// and full strength only once it has switched.
+const PREVIEW_DIM = 0.4, PREVIEW_NEAR = 0.65;
+function setSwipeX(s, dx, ms = 0, landed = false) {
+  const curve = "cubic-bezier(.2,.7,.2,1)";
+  s.cur.style.transition = ms ? `transform ${ms}ms ${curve}` : "none";
+  s.cur.style.transform = `translateX(${dx}px)`;
+  if (s.preview) {
+    const progress = Math.min(1, Math.abs(dx) / s.w);
+    s.preview.style.transition = ms ? `transform ${ms}ms ${curve}, opacity ${ms}ms ease-out` : "none";
+    s.preview.style.transform = `translateX(${dx + s.dir * s.w}px)`;
+    s.preview.style.opacity = landed ? "1" : String(PREVIEW_DIM + (PREVIEW_NEAR - PREVIEW_DIM) * progress);
+  }
+}
+
+function endSwipe(s, commit) {
+  swipeBusy = true;
+  const finish = () => {
+    if (s.preview) s.preview.remove();
+    s.cur.style.transition = s.cur.style.transform = "";
+    swipeBusy = false;
+    if (commit) step(s.dir);
+  };
+  setSwipeX(s, commit ? -s.dir * s.w : 0, commit ? SLIDE_MS : BACK_MS, commit);
+  setTimeout(finish, (commit ? SLIDE_MS : BACK_MS) + 20);
+}
 
 $("#calendar").addEventListener("pointerdown", (e) => {
-  if (e.pointerType !== "touch") return;
-  if (swipe) { swipe.multi = true; return; }                 // a second finger: not a swipe
-  if (!e.isPrimary || e.target.closest("[data-drag]")) return; // squares are for dragging / flicking
-  swipe = { id: e.pointerId, x: e.clientX, y: e.clientY, t: e.timeStamp, multi: false };
+  if (e.pointerType !== "touch" || !swipeOn() || swipeBusy) return;
+  if (swipe) { if (swipe.tracking) endSwipe(swipe, false); swipe = null; return; }   // a second finger: not a swipe
+  if (!e.isPrimary || e.target.closest("[data-drag]")) return;   // squares are for dragging / flicking
+  swipe = { id: e.pointerId, x: e.clientX, y: e.clientY, tracking: false, dir: 0, preview: null,
+            lastX: e.clientX, lastT: e.timeStamp, vx: 0 };
 });
+
+$("#calendar").addEventListener("pointermove", (e) => {
+  const s = swipe;
+  if (!s || e.pointerId !== s.id) return;
+  const dx = e.clientX - s.x, dy = e.clientY - s.y;
+  if (!s.tracking) {
+    if ((multi && multi.max > 1) || drag) { swipe = null; return; }
+    if (Math.abs(dy) > SWIPE_START && Math.abs(dy) >= Math.abs(dx)) { swipe = null; return; }   // scrolling up/down
+    if (Math.abs(dx) < SWIPE_START || Math.abs(dx) < SWIPE_RATIO * Math.abs(dy)) return;
+    const cal = $("#calendar");
+    s.cur = cal.firstElementChild;
+    if (!s.cur) { swipe = null; return; }
+    s.tracking = true;
+    s.w = cal.clientWidth;
+    closePopover();
+  }
+  const dir = dx < 0 ? 1 : -1;   // finger to the left = next
+  if (dir !== s.dir) { s.dir = dir; placePreview(s); }
+  const dt = e.timeStamp - s.lastT;
+  if (dt > 0) s.vx = 0.7 * ((e.clientX - s.lastX) / dt) + 0.3 * s.vx;
+  s.lastX = e.clientX; s.lastT = e.timeStamp;
+  setSwipeX(s, dx);
+});
+
 $("#calendar").addEventListener("pointerup", (e) => {
   const s = swipe;
   if (!s || e.pointerId !== s.id) return;
   swipe = null;
-  if (s.multi || (multi && multi.max > 1) || drag || document.querySelector("dialog[open]")) return;
-  const dx = e.clientX - s.x, dy = e.clientY - s.y;
-  if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < SWIPE_RATIO * Math.abs(dy) || e.timeStamp - s.t > SWIPE_MAX_MS) return;
-  const dir = dx < 0 ? 1 : -1;   // swipe left = next
-  step(dir);
-  const cal = $("#calendar");
-  cal.classList.remove("slide-next", "slide-prev");
-  void cal.offsetWidth;          // restart the animation
-  cal.classList.add(dir > 0 ? "slide-next" : "slide-prev");
+  if (!s.tracking) return;
+  const dx = e.clientX - s.x;
+  const far = Math.abs(dx) > SWIPE_COMMIT * s.w;
+  const flick = Math.abs(s.vx) > SWIPE_FLICK && Math.sign(s.vx) === Math.sign(dx);
+  endSwipe(s, (far || flick) && !document.querySelector("dialog[open]"));
 });
-$("#calendar").addEventListener("pointercancel", (e) => { if (swipe && e.pointerId === swipe.id) swipe = null; });
-$("#calendar").addEventListener("animationend", (e) => {
-  if (e.target === e.currentTarget) e.currentTarget.classList.remove("slide-next", "slide-prev");
+
+$("#calendar").addEventListener("pointercancel", (e) => {
+  const s = swipe;
+  if (!s || e.pointerId !== s.id) return;
+  swipe = null;
+  if (s.tracking) endSwipe(s, false);
 });
 
 /* ---------- side menu ---------- */
