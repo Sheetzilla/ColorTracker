@@ -922,7 +922,7 @@ const FLICK_SPEED = 1.1; // px per ms
 const FLICK_DIST = 40;   // px from start
 
 document.addEventListener("pointerdown", (e) => {
-  if (pop && !e.target.closest("#popover") && !e.target.closest("[data-drag]") && !e.target.closest("#userBtn") && !e.target.closest(".gallery-card")) closePopover();
+  if (pop && !e.target.closest("#popover") && !e.target.closest("dialog") && !e.target.closest("[data-drag]") && !e.target.closest("#userBtn") && !e.target.closest(".gallery-card")) closePopover();
   const src = e.target.closest("[data-drag]");
   if (!src || drag) return;
   if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -1255,7 +1255,7 @@ document.addEventListener("touchmove", (e) => { if (drag && drag.started) e.prev
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     if (drag) { drag.started ? springBack(takeDrag()) : cancelDrag(); }
-    closePopover();
+    if (!document.querySelector("dialog[open]")) closePopover();   // Esc in a question only closes the question
     closeDrawer();
     return;
   }
@@ -1426,7 +1426,8 @@ popEl.addEventListener("click", (e) => {
   if (btn.dataset.act === "signout") { closePopover(); return signOut(auth); }
   if (btn.dataset.act === "privacy") { closePopover(); return $("#whyDialog").showModal(); }
   if (btn.dataset.act === "edit") { const id = pop.id; closePopover(); return openActivityDialog(id); }
-  if (btn.dataset.act === "delactivity") { const id = pop.id; closePopover(); return requestDeleteActivity(id); }
+  // The info popup stays open behind the question and closes only if the delete goes ahead.
+  if (btn.dataset.act === "delactivity") return requestDeleteActivity(pop.id, () => closePopover());
   if (btn.dataset.act === "gotomonth") {
     const { y, m } = pop;
     closePopover();
