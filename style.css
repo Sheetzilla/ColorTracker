@@ -146,14 +146,16 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 /* ---------- dots ---------- */
 .dots-bar { display: flex; align-items: center; gap: 4px; padding: 6px 8px 10px; flex: none; }
 .dots-bar:not(.overflow) .arrow-btn { visibility: hidden; }
+/* dots + the "+" side by side, centred; the dots part scrolls, the + doesn't */
+.dots-group { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 18px; }
 .dots {
-  flex: 1; min-width: 0; display: flex; align-items: center; gap: 22px;
+  flex: none; max-width: 100%; display: flex; align-items: center; gap: 22px;
   overflow-x: auto; scroll-behavior: smooth; scrollbar-width: none;
-  padding: 8px 6px;
+  padding: 8px 4px;   /* 4px sides = DOTS_PAD in app.js; with the 18px gap above, the + is 22px from the last dot */
+  scroll-snap-type: x mandatory; scroll-padding: 0 4px;
 }
+.dots > .dot { scroll-snap-align: start; }
 .dots::-webkit-scrollbar { display: none; }
-.dots > :first-child { margin-left: auto; }
-.dots > :last-child { margin-right: auto; }
 .dot {
   width: var(--dot); height: var(--dot); border-radius: 50%; border: 0; padding: 0; flex: none;
   cursor: grab; transition: transform .15s ease;

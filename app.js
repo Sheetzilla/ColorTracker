@@ -446,13 +446,34 @@ function renderDots() {
     d.setAttribute("aria-label", a.name);
     box.append(d);
   }
-  const add = el("button", "dot add-dot");
-  add.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
-  add.id = "addDot";
-  add.setAttribute("aria-label", "New activity");
-  box.append(add);
   box.scrollLeft = scroll;
+  fitDots();
+}
+
+// The scrolling part only ever shows whole dots: its width is cut to as many dots as fit
+// next to the +, and scrolling snaps by whole dots. The + sits right after it.
+const DOTS_PAD = 4;   // room on each side so a dot can grow on hover (matches style.css)
+let dotsPerView = 1;
+function fitDots() {
+  const box = $("#dots");
+  const n = box.children.length;
+  box.classList.toggle("hidden", n === 0);
+  if (n) {
+    const dot = box.children[0].offsetWidth;
+    const gap = parseFloat(getComputedStyle(box).columnGap) || 0;
+    const group = box.parentElement;
+    const groupGap = parseFloat(getComputedStyle(group).columnGap) || 0;
+    const room = group.clientWidth - $("#addDot").offsetWidth - groupGap - 2 * DOTS_PAD;
+    dotsPerView = Math.max(1, Math.floor((room + gap) / (dot + gap)));
+    const show = Math.min(n, dotsPerView);
+    box.style.width = `${2 * DOTS_PAD + show * dot + (show - 1) * gap}px`;
+  }
   updateDotArrows();
+}
+function dotStep() {
+  const box = $("#dots");
+  if (!box.children.length) return 0;
+  return box.children[0].offsetWidth + (parseFloat(getComputedStyle(box).columnGap) || 0);
 }
 
 function updateDotArrows() {
@@ -464,9 +485,9 @@ function updateDotArrows() {
 }
 
 $("#dots").addEventListener("scroll", updateDotArrows, { passive: true });
-$("#dotsPrev").addEventListener("click", () => $("#dots").scrollBy({ left: -$("#dots").clientWidth * 0.8 }));
-$("#dotsNext").addEventListener("click", () => $("#dots").scrollBy({ left: $("#dots").clientWidth * 0.8 }));
-$("#dots").addEventListener("click", (e) => { if (e.target.closest("#addDot")) openActivityDialog(null); });
+$("#dotsPrev").addEventListener("click", () => $("#dots").scrollBy({ left: -Math.max(1, dotsPerView - 1) * dotStep() }));
+$("#dotsNext").addEventListener("click", () => $("#dots").scrollBy({ left: Math.max(1, dotsPerView - 1) * dotStep() }));
+$("#addDot").addEventListener("click", () => openActivityDialog(null));
 
 function renderDrawerList() {
   renderGallery();
@@ -1432,7 +1453,7 @@ let resizeTimer = null;
 window.addEventListener("resize", () => {
   if (pop) closePopover();
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => { if (state.user) { renderCalendar(); updateDotArrows(); } }, 150);
+  resizeTimer = setTimeout(() => { if (state.user) { renderCalendar(); fitDots(); } }, 150);
 });
 
 /* =========================================================
