@@ -386,7 +386,8 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 }
 .pop-dur .icon-btn { border: 1px solid var(--line); width: 34px; height: 34px; font-size: 20px; }
 .pop-pretty { color: var(--muted); font-size: 13px; margin: 6px 0 0 30px; }
-.pop-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+.pop-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.gallery-dl { margin-top: 10px; }
 .pop-actions.spread { justify-content: space-between; align-items: center; gap: 8px; }
 .trash-btn {
   width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%;

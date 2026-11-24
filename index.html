@@ -121,6 +121,7 @@
         <span>Gallery</span><span class="chev" aria-hidden="true">›</span>
       </button>
       <div id="galleryGrid" class="gallery-grid hidden"></div>
+      <button id="galleryDownload" class="btn backup-btn gallery-dl hidden" type="button">⬇ Download all as image</button>
     </div>
     <div class="backup">
       <button id="backupToggle" class="gallery-toggle" type="button" aria-expanded="false" aria-controls="backupBody">
@@ -164,6 +165,20 @@
         <span class="spacer"></span>
         <button type="button" id="restoreCancel" class="btn">Cancel</button>
         <button type="button" id="restoreGo" class="btn primary">Restore</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Options before saving an animal picture -->
+  <dialog id="imgDialog" class="dialog">
+    <form method="dialog">
+      <h3 tabindex="-1" autofocus>Download image</h3>
+      <p id="imgInfo" class="restore-info"></p>
+      <label class="check-row"><input type="checkbox" id="imgStats"> Show stats (sessions and total time)</label>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button class="btn" value="cancel">Cancel</button>
+        <button class="btn primary" value="ok">Download</button>
       </div>
     </form>
   </dialog>
