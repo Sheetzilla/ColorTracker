@@ -1351,7 +1351,8 @@ function renderPopover() {
     }
   } else if (pop.type === "user") {
     if (popEl.dataset.built !== "user") {
-      popEl.innerHTML = `<p class="pop-email"></p><button class="btn" data-act="signout">Sign out</button>`;
+      popEl.innerHTML = `<p class="pop-email"></p><button class="btn" data-act="signout">Sign out</button>` +
+        `<button class="why-link pop-privacy" data-act="privacy">Privacy &amp; sign-in info</button>`;
       popEl.querySelector(".pop-email").textContent = state.user?.email || "";
       popEl.dataset.built = "user";
     }
@@ -1399,6 +1400,7 @@ popEl.addEventListener("click", (e) => {
   if (!btn || !pop) return;
   if (btn.dataset.act === "close") return closePopover();
   if (btn.dataset.act === "signout") { closePopover(); return signOut(auth); }
+  if (btn.dataset.act === "privacy") { closePopover(); return $("#whyDialog").showModal(); }
   if (btn.dataset.act === "edit") { const id = pop.id; closePopover(); return openActivityDialog(id); }
   if (btn.dataset.act === "gotomonth") {
     const { y, m } = pop;
