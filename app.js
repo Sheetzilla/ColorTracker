@@ -984,8 +984,7 @@ function renderWeek() {
     h.append(el("div", "", WEEKDAYS[i]), el("div", "wd-date", d.getDate()), el("div", "wd-total", total ? fmtShort(total) : ""));
     heads.push(h);
 
-    // Mon–Fri run the full height; Sat and Sun stop above the animal's corner.
-    const c = el("div", "wcol" + (i < 6 ? " br-solid" : "") + (i >= 5 ? " bb-solid wcol-short" : "") + (key === today ? " today" : ""));
+    const c = el("div", "wcol bb-solid" + (i < 6 ? " br-solid" : "") + (key === today ? " today" : ""));
     c.dataset.date = key;
     const blocks = el("div", "blocks");
     for (const s of list) {
@@ -1000,10 +999,12 @@ function renderWeek() {
   wknos.append(el("div", "wkno", isoWeek(start)), el("div", "wkno"));
   box.append(...cols);
 
-  // Animal in the bottom-right corner under Sat–Sun: this month's, or both if the week crosses a month.
+  // Bottom row across the whole week, animal in the middle: this month's, or both if the week crosses a month.
   const strip = el("div", "week-animals");
-  strip.append(liveAnimal(start.getFullYear(), start.getMonth(), "xMidYMid"));
-  if (!sameMonth) strip.append(liveAnimal(end.getFullYear(), end.getMonth(), "xMidYMid"));
+  // Two animals: each hugs its outer edge (left one at the middle of Tue, right one at the middle of Sat).
+  strip.classList.toggle("two", !sameMonth);
+  strip.append(liveAnimal(start.getFullYear(), start.getMonth(), sameMonth ? "xMidYMid" : "xMinYMid"));
+  if (!sameMonth) strip.append(liveAnimal(end.getFullYear(), end.getMonth(), "xMaxYMid"));
   box.append(strip);
 
   const cellScroll = saveCellScroll();
