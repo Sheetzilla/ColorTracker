@@ -830,7 +830,7 @@ imgDlg.addEventListener("close", async () => {
 
 function monthStats(y, m) {
   const sessions = monthSessions(y, m);
-  if (!sessions.length) return "No sessions yet";
+  if (!sessions.length) return "No sessions";
   const minutes = sessions.reduce((t, s) => t + (s.minutes || 0), 0);
   return `${sessions.length} session${sessions.length === 1 ? "" : "s"} · ${fmtMinutes(minutes)}`;
 }
