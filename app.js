@@ -1057,6 +1057,37 @@ function step(dir) {
   render();
 }
 
+/* ---------- Touch: swipe left/right on the calendar = next/previous month or week ---------- */
+const SWIPE_MIN = 60;       // px sideways
+const SWIPE_RATIO = 1.5;    // must be this much more sideways than up/down
+const SWIPE_MAX_MS = 700;
+let swipe = null;
+
+$("#calendar").addEventListener("pointerdown", (e) => {
+  if (e.pointerType !== "touch") return;
+  if (swipe) { swipe.multi = true; return; }                 // a second finger: not a swipe
+  if (!e.isPrimary || e.target.closest("[data-drag]")) return; // squares are for dragging / flicking
+  swipe = { id: e.pointerId, x: e.clientX, y: e.clientY, t: e.timeStamp, multi: false };
+});
+$("#calendar").addEventListener("pointerup", (e) => {
+  const s = swipe;
+  if (!s || e.pointerId !== s.id) return;
+  swipe = null;
+  if (s.multi || (multi && multi.max > 1) || drag || document.querySelector("dialog[open]")) return;
+  const dx = e.clientX - s.x, dy = e.clientY - s.y;
+  if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < SWIPE_RATIO * Math.abs(dy) || e.timeStamp - s.t > SWIPE_MAX_MS) return;
+  const dir = dx < 0 ? 1 : -1;   // swipe left = next
+  step(dir);
+  const cal = $("#calendar");
+  cal.classList.remove("slide-next", "slide-prev");
+  void cal.offsetWidth;          // restart the animation
+  cal.classList.add(dir > 0 ? "slide-next" : "slide-prev");
+});
+$("#calendar").addEventListener("pointercancel", (e) => { if (swipe && e.pointerId === swipe.id) swipe = null; });
+$("#calendar").addEventListener("animationend", (e) => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove("slide-next", "slide-prev");
+});
+
 /* ---------- side menu ---------- */
 function openDrawer() {
   closePopover();
