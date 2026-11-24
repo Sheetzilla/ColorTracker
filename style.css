@@ -177,11 +177,11 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .calendar { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 8px 8px; overflow-y: auto; overscroll-behavior: contain;
   touch-action: pan-y; }   /* sideways finger moves stay with the app (for swiping months/weeks) */
 .calendar .blocks { touch-action: pan-y; }   /* busy days scroll on their own, so they need it too */
-.calendar.slide-next { animation: slide-next .22s ease-out; }
-.calendar.slide-prev { animation: slide-prev .22s ease-out; }
-@keyframes slide-next { from { transform: translateX(36px); opacity: .35; } to { transform: none; opacity: 1; } }
-@keyframes slide-prev { from { transform: translateX(-36px); opacity: .35; } to { transform: none; opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .calendar.slide-next, .calendar.slide-prev { animation: none; } }
+/* phone: week numbers hidden (double-tap the left side) */
+.calendar.no-wk { --wkcol: 4px; }
+.calendar.no-wk .wk-lbl, .calendar.no-wk .wknos { visibility: hidden; overflow: hidden; }
+/* swiping: the next month/week is laid next to the current one and slides in */
+.calendar { position: relative; overflow-x: hidden; }
 .cal { flex: none; display: flex; flex-direction: column; }
 .cal-head { position: sticky; top: 0; z-index: 3; background: var(--bg); display: grid; grid-template-columns: var(--wkcol) repeat(7, minmax(0, 1fr)); align-items: end; padding-bottom: 4px; }
 .wk-lbl, .wd { text-align: center; font-size: 14px; color: var(--text); }

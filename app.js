@@ -1177,6 +1177,39 @@ $("#calendar").addEventListener("pointerup", (e) => {
   endSwipe(s, (far || flick) && !document.querySelector("dialog[open]"));
 });
 
+/* ---------- Phone: double-tap the left quarter of the calendar to hide / show week numbers ---------- */
+const HIDE_WK_KEY = "ct-hide-weeknos";
+const isPhone = () => window.matchMedia("(pointer: coarse)").matches;
+function applyWeekNos() {
+  let hide = false;
+  try { hide = isPhone() && localStorage.getItem(HIDE_WK_KEY) === "1"; } catch { /* ignore */ }
+  $("#calendar").classList.toggle("no-wk", hide);
+}
+applyWeekNos();
+
+let tapStart = null, lastTap = null;
+$("#calendar").addEventListener("pointerdown", (e) => {
+  tapStart = e.pointerType === "touch" && e.isPrimary ? { x: e.clientX, y: e.clientY, t: e.timeStamp } : null;
+});
+$("#calendar").addEventListener("pointerup", (e) => {
+  const s = tapStart;
+  tapStart = null;
+  if (!s || e.pointerType !== "touch" || !isPhone()) return;
+  if (e.timeStamp - s.t > 300 || Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) { lastTap = null; return; }   // not a tap
+  if (e.target.closest("[data-drag], button, a, input") || (multi && multi.max > 1)) { lastTap = null; return; }
+  const r = $("#calendar").getBoundingClientRect();
+  if (e.clientX > r.left + r.width / 4) { lastTap = null; return; }   // only the left quarter
+  if (lastTap && e.timeStamp - lastTap.t < 350 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40) {
+    lastTap = null;
+    const hide = !$("#calendar").classList.contains("no-wk");
+    try { localStorage.setItem(HIDE_WK_KEY, hide ? "1" : "0"); } catch { /* ignore */ }
+    applyWeekNos();
+    renderCalendar();   // rows/animal re-fit to the new width
+    return;
+  }
+  lastTap = { x: e.clientX, y: e.clientY, t: e.timeStamp };
+});
+
 $("#calendar").addEventListener("pointercancel", (e) => {
   const s = swipe;
   if (!s || e.pointerId !== s.id) return;
