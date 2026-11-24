@@ -613,11 +613,11 @@ $("#calendar").addEventListener("scroll", (e) => {
 
 // Base row height: the month's weeks fill the screen. A row with lots of
 // circles grows taller than this, and the calendar then scrolls.
-function sizeRows(wrap, rowsOnScreen) {
+function sizeRows(wrap, rowsOnScreen, reserve = 0) {
   const cal = $("#calendar");
   const head = wrap.querySelector(".cal-head");
   const padBottom = parseFloat(getComputedStyle(cal).paddingBottom) || 0;
-  const avail = cal.clientHeight - padBottom - (head ? head.offsetHeight : 30) - 4;   // 4 = box outline
+  const avail = cal.clientHeight - padBottom - (head ? head.offsetHeight : 30) - 4 - reserve;   // 4 = box outline
   wrap.style.setProperty("--rowh", `${Math.max(56, Math.floor(avail / rowsOnScreen))}px`);
 }
 
@@ -668,7 +668,8 @@ function animalSvg(y, m, { popFrom = Infinity, wiggle = false, align = "xMidYMid
   return { svg, count, baseN, sessions };
 }
 
-function addFish(box, trail, rows, extraRow, y, m) {
+// The month's animal, with new dots popping in and a wiggle when it gets full.
+function liveAnimal(y, m, align) {
   const key = `${y}-${pad(m + 1)}`;
   const count = monthSessions(y, m).length;
   const baseN = ANIMALS[m].base.length;
@@ -676,7 +677,11 @@ function addFish(box, trail, rows, extraRow, y, m) {
   animalSeen.set(key, count);
   const popFrom = prev !== undefined && count > prev ? prev : Infinity;
   const wiggle = prev !== undefined && prev < baseN && count >= baseN;
-  const { svg } = animalSvg(y, m, { popFrom, wiggle, align: "xMaxYMid" });   // hug the right edge
+  return animalSvg(y, m, { popFrom, wiggle, align }).svg;
+}
+
+function addFish(box, trail, rows, extraRow, y, m) {
+  const svg = liveAnimal(y, m, "xMaxYMid");   // hug the right edge
 
   const holder = el("div");
   holder.append(svg);
@@ -746,17 +751,14 @@ function renderWeek() {
   const end = addDays(start, 6);
   const today = dateKey(new Date());
 
+  // Title: "Week 48 · Nov 2026", "Week 49 · Nov – Dec 2026", "Week 53 · Dec 2026 – Jan 2027"
   const sameMonth = start.getMonth() === end.getMonth();
-  const a = start.toLocaleDateString("en-GB", sameMonth ? { day: "numeric" } : { day: "numeric", month: "short" });
-  const b = end.toLocaleDateString("en-GB", narrow() ? { day: "numeric", month: "short" } : { day: "numeric", month: "short", year: "numeric" });
-  if (narrow()) {
-    // On phones the dates are shown above each column, so the title is just the month.
-    const m1 = start.toLocaleDateString("en-GB", { month: "short" });
-    const m2 = end.toLocaleDateString("en-GB", { month: "short" });
-    $("#title").textContent = sameMonth ? `${m1} ${end.getFullYear()}` : `${m1}–${m2}`;
-  } else {
-    $("#title").textContent = `${a} – ${b}`;
-  }
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const mon = (d) => d.toLocaleDateString("en-GB", { month: "short" });
+  const months = sameMonth ? `${mon(end)} ${end.getFullYear()}`
+    : sameYear ? `${mon(start)} – ${mon(end)} ${end.getFullYear()}`
+    : `${mon(start)} ${start.getFullYear()} – ${mon(end)} ${end.getFullYear()}`;
+  $("#title").textContent = `Week ${isoWeek(start)} · ${months}`;
 
   const heads = [];
   const cols = [];
@@ -772,7 +774,8 @@ function renderWeek() {
     h.append(el("div", "", WEEKDAYS[i]), el("div", "wd-date", d.getDate()), el("div", "wd-total", total ? fmtShort(total) : ""));
     heads.push(h);
 
-    const c = el("div", "wcol" + (i < 6 ? " br-solid" : "") + (key === today ? " today" : ""));
+    // Mon–Fri run the full height; Sat and Sun stop above the animal's corner.
+    const c = el("div", "wcol" + (i < 6 ? " br-solid" : "") + (i >= 5 ? " bb-solid wcol-short" : "") + (key === today ? " today" : ""));
     c.dataset.date = key;
     const blocks = el("div", "blocks");
     for (const s of list) {
@@ -783,8 +786,16 @@ function renderWeek() {
     cols.push(c);
   }
   const { wrap, wknos, box } = calendarShell(1, heads);
-  wknos.append(el("div", "wkno", isoWeek(start)));
+  wrap.classList.add("week");
+  wknos.append(el("div", "wkno", isoWeek(start)), el("div", "wkno"));
   box.append(...cols);
+
+  // Animal in the bottom-right corner under Sat–Sun: this month's, or both if the week crosses a month.
+  const strip = el("div", "week-animals");
+  strip.append(liveAnimal(start.getFullYear(), start.getMonth(), "xMaxYMid"));
+  if (!sameMonth) strip.append(liveAnimal(end.getFullYear(), end.getMonth(), "xMaxYMid"));
+  box.append(strip);
+
   const cellScroll = saveCellScroll();
   $("#calendar").replaceChildren(wrap);
   sizeRows(wrap, 1);

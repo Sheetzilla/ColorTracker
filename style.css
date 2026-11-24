@@ -203,6 +203,13 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 /* the animal never makes its row taller: it is laid over the space, not inside it */
 .fish-in, .animal-row { position: relative; min-height: 0; pointer-events: none; }
 .animal-row { grid-column: 1 / -1; }
+/* week view: Mon–Fri full height, Sat–Sun on top, the animal in the corner under Sat–Sun (a third of the height) */
+.cal.week .cal-body { grid-template-rows: calc(var(--rowh, 270px) * 2 / 3) calc(var(--rowh, 270px) / 3); }
+.cal.week .wcol { grid-row: 1 / span 2; }
+.cal.week .wcol.wcol-short { grid-row: 1; }
+.week-animals { grid-row: 2; grid-column: 6 / span 2; position: relative; min-height: 0; pointer-events: none;
+  display: flex; justify-content: flex-end; gap: 6px; padding: 6px 4px; }
+.week-animals .fish { flex: 0 1 230px; width: auto; height: 100%; min-width: 0; max-width: 230px; }
 .fish { overflow: visible; }
 .fish-in .fish, .animal-row .fish { position: absolute; top: 6px; bottom: 6px; right: 4px; width: calc(100% - 12px); height: calc(100% - 12px); max-width: 230px; }
 .fish circle { transform-box: fill-box; transform-origin: center; }
