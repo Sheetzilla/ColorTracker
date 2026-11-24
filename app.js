@@ -1533,7 +1533,7 @@ $("#deleteActivityBtn").addEventListener("click", () => {
   requestDeleteActivity(editingId, () => dlg.close());
 });
 
-/* ---------- Deleting an activity: ask first if it has sessions (can be switched off) ---------- */
+/* ---------- Deleting an activity: ask first (can be switched off in Settings) ---------- */
 const ASK_DELETE_KEY = "ct-ask-delete";
 function askBeforeDelete() {
   try { return localStorage.getItem(ASK_DELETE_KEY) !== "0"; } catch { return true; }
@@ -1551,10 +1551,12 @@ let pendingDelete = null;   // { id, before }
 function requestDeleteActivity(id, before) {
   if (!state.activities.has(id)) return;
   const n = sessionsOf(id).length;
-  if (!n || !askBeforeDelete()) return doDeleteActivity(id, before);
+  if (!askBeforeDelete()) return doDeleteActivity(id, before);
   pendingDelete = { id, before };
   $("#cdTitle").textContent = `Delete ${actName(id)}?`;
-  $("#cdText").textContent = `This will also delete ${n} session${n === 1 ? "" : "s"} from calendar.`;
+  // Only mention sessions when there are some on the calendar.
+  $("#cdText").textContent = n ? `This will also delete ${n} session${n === 1 ? "" : "s"} from calendar.` : "";
+  $("#cdText").classList.toggle("hidden", !n);
   $("#cdDontAsk").checked = false;
   confirmDlg.returnValue = "";
   confirmDlg.showModal();
