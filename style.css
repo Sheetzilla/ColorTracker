@@ -112,7 +112,7 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .bw-stripe i:nth-child(2) { background: #9ef7f2; }
 .bw-stripe i:nth-child(3) { background: #aef59a; }
 .bw-stripe i:nth-child(4) { background: #d9b4ff; }
-.bw-page { padding: 18px 22px 20px; overflow-y: auto; }
+.bw-page { padding: 18px 22px 20px; overflow-y: auto; background: var(--bg); }
 .bw-page h3:focus { outline: none; }
 .bw-page h3 { margin: 0 0 8px; font-size: 21px; font-weight: 500; }
 .bw-page h4 { display: flex; align-items: center; gap: 8px; margin: 16px 0 4px; font-size: 15px; font-weight: 600; }
