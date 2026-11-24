@@ -780,8 +780,160 @@ $("#galleryToggle").addEventListener("click", () => {
   galleryOpen = !galleryOpen;
   $("#galleryToggle").setAttribute("aria-expanded", String(galleryOpen));
   $("#galleryGrid").classList.toggle("hidden", !galleryOpen);
+  $("#galleryDownload").classList.toggle("hidden", !galleryOpen);
   renderGallery();
 });
+$("#galleryDownload").addEventListener("click", () => {
+  const months = galleryMonths();
+  askImage(months, "colortracker-gallery.jpg", `All ${months.length} month${months.length === 1 ? "" : "s"}`);
+});
+
+/* ---------- Animal pictures: drawn on the device and saved as JPEG ---------- */
+const imgDlg = $("#imgDialog");
+let imgRequest = null;   // { months: [[y, m], ...], name }
+
+function askImage(months, name, label) {
+  if (!months.length) return;
+  imgRequest = { months, name };
+  $("#imgInfo").textContent = `${label} · JPEG`;
+  imgDlg.returnValue = "";
+  imgDlg.showModal();
+}
+imgDlg.addEventListener("close", async () => {
+  const req = imgRequest;
+  imgRequest = null;
+  if (!req || imgDlg.returnValue !== "ok") return;
+  try {
+    const blob = await animalImage(req.months, $("#imgStats").checked);
+    saveFile(req.name, blob, "image/jpeg");
+  } catch (err) {
+    console.error(err);
+    toast("Couldn't make the image");
+  }
+});
+
+function monthStats(y, m) {
+  const sessions = monthSessions(y, m);
+  if (!sessions.length) return "No sessions yet";
+  const minutes = sessions.reduce((t, s) => t + (s.minutes || 0), 0);
+  return `${sessions.length} session${sessions.length === 1 ? "" : "s"} · ${fmtMinutes(minutes)}`;
+}
+
+// Draws month m's animal dots into the box (x, y, w, h), centred.
+function drawAnimal(ctx, yr, m, x, y, w, h) {
+  const { svg } = animalSvg(yr, m);
+  const [, , vw, vh] = svg.getAttribute("viewBox").split(" ").map(Number);
+  const k = Math.min(w / vw, h / vh);
+  const ox = x + (w - vw * k) / 2, oy = y + (h - vh * k) / 2;
+  for (const c of svg.querySelectorAll("circle")) {
+    ctx.fillStyle = c.getAttribute("fill") || "#c9ccd1";
+    ctx.beginPath();
+    ctx.arc(ox + c.getAttribute("cx") * k, oy + c.getAttribute("cy") * k, c.getAttribute("r") * k, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawFooter(ctx, W, cy) {
+  const font = "Fredoka, system-ui, sans-serif";
+  ctx.font = `500 30px ${font}`;
+  const text = "ColorTracker";
+  const tw = ctx.measureText(text).width;
+  const logo = 30, gap = 12;
+  const x0 = (W - (logo + gap + tw)) / 2;
+  const r = 6.5, cols = ["#ff9e9e", "#9ef7f2", "#aef59a", "#d9b4ff"];
+  cols.forEach((col, i) => {
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(x0 + r + (i % 2) * 15.5, cy - 8 + Math.floor(i / 2) * 15.5, r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.fillStyle = "#80868b";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x0 + logo + gap, cy);
+}
+
+const COPYRIGHT = () => `Copyright © ${new Date().getFullYear()} Sheet | Sleet Sheet Studio`;
+
+// Logo + name, and the copyright line under it. cy = centre of the logo row.
+function drawFooterBlock(ctx, W, cy) {
+  drawFooter(ctx, W, cy);
+  ctx.fillStyle = "#9aa0a6";
+  ctx.font = "400 21px Fredoka, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(COPYRIGHT(), W / 2, cy + 46);
+}
+
+async function animalImage(months, withStats) {
+  // Same font as the app's title (Fredoka). Wait until every weight used here is loaded.
+  try { await Promise.all(["400 20px Fredoka", "500 40px Fredoka"].map((f) => document.fonts.load(f))); } catch { /* system font */ }
+  const font = "Fredoka, system-ui, sans-serif";
+  const INK = "#4a4a4a";   // same dark grey as the title
+  const W = 1080, M = 70, GAP = 40, FOOT = 170;
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  if (months.length === 1) {
+    // One month: big animal, "November 2026", optional stats.
+    const [y, m] = months[0];
+    canvas.width = W; canvas.height = W;
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, W);
+    drawAnimal(ctx, y, m, 90, 130, W - 180, 560);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = INK; ctx.font = `500 58px ${font}`;
+    ctx.fillText(`${MONTH_NAMES[m]} ${y}`, W / 2, 775);
+    if (withStats) {
+      ctx.fillStyle = "#80868b"; ctx.font = `400 34px ${font}`;
+      ctx.fillText(monthStats(y, m), W / 2, 837);
+    }
+    drawFooterBlock(ctx, W, W - 110);
+  } else {
+    // Several months: one block per year (year heading on top), newest first like the Gallery.
+    const groups = [];
+    for (const [y, m] of months) {
+      if (!groups.length || groups[groups.length - 1].year !== y) groups.push({ year: y, months: [] });
+      groups[groups.length - 1].months.push(m);
+    }
+    const n = months.length;
+    const cols = n <= 4 ? 2 : n <= 9 ? 3 : 4;
+    const cellW = (W - 2 * M - (cols - 1) * GAP) / cols;
+    const animalH = cellW * 0.6;
+    const labelSize = Math.round(Math.min(40, Math.max(20, cellW * 0.09)));
+    const statSize = Math.round(labelSize * 0.68);
+    const cellH = animalH + 14 + labelSize * 1.4 + (withStats ? statSize * 1.5 : 0);
+    const YEAR_SIZE = 48, YEAR_H = 86, GROUP_GAP = 56;
+    const blockH = (g) => { const rows = Math.ceil(g.months.length / cols); return YEAR_H + rows * cellH + (rows - 1) * GAP; };
+    const contentH = groups.reduce((t, g) => t + blockH(g), 0) + (groups.length - 1) * GROUP_GAP;
+    const H = Math.max(W, Math.ceil(M + contentH + FOOT));
+    canvas.width = W; canvas.height = H;
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+    let top = M + Math.max(0, (H - FOOT - M - contentH) / 2);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    for (const g of groups) {
+      ctx.fillStyle = INK; ctx.font = `500 ${YEAR_SIZE}px ${font}`;
+      ctx.fillText(String(g.year), W / 2, top + YEAR_H / 2 - 10);
+      const gy = top + YEAR_H;
+      g.months.forEach((m, i) => {
+        const r = Math.floor(i / cols), c = i % cols;
+        const inRow = Math.min(cols, g.months.length - r * cols);   // centre a short last row
+        const rowX = M + ((cols - inRow) * (cellW + GAP)) / 2;
+        const x = rowX + c * (cellW + GAP), cy = gy + r * (cellH + GAP);
+        drawAnimal(ctx, g.year, m, x, cy, cellW, animalH);
+        ctx.fillStyle = INK; ctx.font = `500 ${labelSize}px ${font}`;
+        ctx.fillText(MONTH_NAMES[m], x + cellW / 2, cy + animalH + 14 + labelSize * 0.7);
+        if (withStats) {
+          ctx.fillStyle = "#80868b"; ctx.font = `400 ${statSize}px ${font}`;
+          ctx.fillText(monthStats(g.year, m), x + cellW / 2, cy + animalH + 14 + labelSize * 1.4 + statSize * 0.75);
+        }
+      });
+      top += blockH(g) + GROUP_GAP;
+    }
+    drawFooterBlock(ctx, W, H - 110);
+  }
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/jpeg", 0.92));
+}
 
 $("#galleryGrid").addEventListener("click", (e) => {
   const card = e.target.closest(".gallery-card");
@@ -1357,7 +1509,10 @@ function renderPopover() {
         <div class="stat-row"><span>Dots coloured</span><b class="st-dots"></b></div>
         <div class="stat-row"><span>Total time</span><b class="st-time"></b></div>
         <div class="stat-row"><span>Top activity</span><b class="st-top"></b></div>
-        <div class="pop-actions"><button class="btn small" data-act="gotomonth">Go to month</button></div>`;
+        <div class="pop-actions">
+          <button class="btn small" data-act="dlmonth">Download image</button>
+          <button class="btn small" data-act="gotomonth">Go to month</button>
+        </div>`;
       popEl.dataset.built = key;
     }
     popEl.querySelector(".pop-name").textContent = `${MONTH_NAMES[m]} ${y}`;
@@ -1428,6 +1583,7 @@ popEl.addEventListener("click", (e) => {
   if (btn.dataset.act === "edit") { const id = pop.id; closePopover(); return openActivityDialog(id); }
   // The info popup stays open behind the question and closes only if the delete goes ahead.
   if (btn.dataset.act === "delactivity") return requestDeleteActivity(pop.id, () => closePopover());
+  if (btn.dataset.act === "dlmonth") return askImage([[pop.y, pop.m]], `colortracker-${pop.y}-${pad(pop.m + 1)}.jpg`, `${MONTH_NAMES[pop.m]} ${pop.y}`);
   if (btn.dataset.act === "gotomonth") {
     const { y, m } = pop;
     closePopover();
@@ -1622,7 +1778,7 @@ if (isIOS && !isInstalled()) {
 const today = () => dateKey(new Date());
 
 function saveFile(name, text, type) {
-  const blob = new Blob([text], { type });
+  const blob = text instanceof Blob ? text : new Blob([text], { type });
   const file = new File([blob], name, { type });
   // iPhone: the share sheet lets you save to Files / iCloud
   if (isIOS && navigator.canShare && navigator.canShare({ files: [file] })) {
