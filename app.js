@@ -785,26 +785,42 @@ $("#galleryToggle").addEventListener("click", () => {
 });
 $("#galleryDownload").addEventListener("click", () => {
   const months = galleryMonths();
-  askImage(months, "colortracker-gallery.jpg", `All ${months.length} month${months.length === 1 ? "" : "s"}`);
+  askImage(months, "colortracker-gallery.jpg", months.length === 1 ? "1 month" : `All ${months.length} months`);
 });
 
 /* ---------- Animal pictures: drawn on the device and saved as JPEG ---------- */
 const imgDlg = $("#imgDialog");
 let imgRequest = null;   // { months: [[y, m], ...], name }
+let previewToken = 0;
 
 function askImage(months, name, label) {
   if (!months.length) return;
   imgRequest = { months, name };
   $("#imgInfo").textContent = `${label} · JPEG`;
+  $("#imgPreview").replaceChildren();
   imgDlg.returnValue = "";
   imgDlg.showModal();
+  updateImgPreview();
 }
+
+// Draws the real image and shows it shrunk at the top of the popup.
+async function updateImgPreview() {
+  if (!imgRequest) return;
+  const token = ++previewToken;
+  const canvas = await animalCanvas(imgRequest.months, $("#imgStats").checked);
+  if (token !== previewToken || !imgRequest) return;   // a newer preview is on its way
+  $("#imgPreview").replaceChildren(canvas);
+}
+$("#imgStats").addEventListener("change", updateImgPreview);
+
 imgDlg.addEventListener("close", async () => {
   const req = imgRequest;
   imgRequest = null;
   if (!req || imgDlg.returnValue !== "ok") return;
   try {
-    const blob = await animalImage(req.months, $("#imgStats").checked);
+    const canvas = await animalCanvas(req.months, $("#imgStats").checked);
+    const blob = await new Promise((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/jpeg", 0.92));
     saveFile(req.name, blob, "image/jpeg");
   } catch (err) {
     console.error(err);
@@ -865,7 +881,7 @@ function drawFooterBlock(ctx, W, cy) {
   ctx.fillText(COPYRIGHT(), W / 2, cy + 46);
 }
 
-async function animalImage(months, withStats) {
+async function animalCanvas(months, withStats) {
   // Same font as the app's title (Fredoka). Wait until every weight used here is loaded.
   try { await Promise.all(["400 20px Fredoka", "500 40px Fredoka"].map((f) => document.fonts.load(f))); } catch { /* system font */ }
   const font = "Fredoka, system-ui, sans-serif";
@@ -931,8 +947,7 @@ async function animalImage(months, withStats) {
     }
     drawFooterBlock(ctx, W, H - 110);
   }
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/jpeg", 0.92));
+  return canvas;
 }
 
 $("#galleryGrid").addEventListener("click", (e) => {
