@@ -1295,7 +1295,10 @@ const ACTIVITY_HTML = `
   </div>
   <div class="pop-line"></div>
   <div class="pop-line muted"></div>
-  <div class="pop-actions"><button class="btn small" data-act="edit">Edit</button></div>`;
+  <div class="pop-actions spread">
+    <button class="trash-btn" data-act="delactivity" aria-label="Delete activity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg></button>
+    <button class="btn small" data-act="edit">Edit</button>
+  </div>`;
 
 function openPopover(p, anchor, mode) {
   pop = p;
@@ -1423,6 +1426,7 @@ popEl.addEventListener("click", (e) => {
   if (btn.dataset.act === "signout") { closePopover(); return signOut(auth); }
   if (btn.dataset.act === "privacy") { closePopover(); return $("#whyDialog").showModal(); }
   if (btn.dataset.act === "edit") { const id = pop.id; closePopover(); return openActivityDialog(id); }
+  if (btn.dataset.act === "delactivity") { const id = pop.id; closePopover(); return requestDeleteActivity(id); }
   if (btn.dataset.act === "gotomonth") {
     const { y, m } = pop;
     closePopover();
@@ -1461,11 +1465,9 @@ window.addEventListener("resize", () => {
    ========================================================= */
 const dlg = $("#activityDialog");
 let editingId = null;
-let deleteArmed = false;
 
 function openActivityDialog(id) {
   editingId = id || null;
-  deleteArmed = false;
   const a = id ? state.activities.get(id) : null;
   $("#dialogTitle").textContent = a ? "Edit activity" : "New activity";
   $("#actName").value = a ? a.name : "";
@@ -1473,7 +1475,6 @@ function openActivityDialog(id) {
   $("#actColor").value = a ? a.color : autoColor();
   const delBtn = $("#deleteActivityBtn");
   delBtn.classList.toggle("hidden", !a);
-  delBtn.textContent = "Delete";
   updatePreview();
   dlg.showModal();
   if (window.matchMedia("(hover: hover)").matches) setTimeout(() => $("#actName").focus(), 0);
@@ -1528,16 +1529,48 @@ $("#activityForm").addEventListener("submit", (e) => {
 });
 
 $("#deleteActivityBtn").addEventListener("click", () => {
-  const n = sessionsOf(editingId).length;
-  if (!deleteArmed) {
-    deleteArmed = true;
-    $("#deleteActivityBtn").textContent = n ? `Also delete ${n} session${n === 1 ? "" : "s"}?` : "Really delete?";
-    return;
-  }
-  const name = actName(editingId);
-  dlg.close();
-  deleteActivity(editingId);
+  // The edit window stays open behind the question, and closes only if the delete goes ahead.
+  requestDeleteActivity(editingId, () => dlg.close());
+});
+
+/* ---------- Deleting an activity: ask first if it has sessions (can be switched off) ---------- */
+const ASK_DELETE_KEY = "ct-ask-delete";
+function askBeforeDelete() {
+  try { return localStorage.getItem(ASK_DELETE_KEY) !== "0"; } catch { return true; }
+}
+function setAskBeforeDelete(on) {
+  try { localStorage.setItem(ASK_DELETE_KEY, on ? "1" : "0"); } catch { /* ignore */ }
+  $("#askDeleteToggle").checked = on;
+}
+$("#askDeleteToggle").checked = askBeforeDelete();
+$("#askDeleteToggle").addEventListener("change", (e) => setAskBeforeDelete(e.target.checked));
+
+const confirmDlg = $("#confirmDeleteDialog");
+let pendingDelete = null;   // { id, before }
+
+function requestDeleteActivity(id, before) {
+  if (!state.activities.has(id)) return;
+  const n = sessionsOf(id).length;
+  if (!n || !askBeforeDelete()) return doDeleteActivity(id, before);
+  pendingDelete = { id, before };
+  $("#cdTitle").textContent = `Delete ${actName(id)}?`;
+  $("#cdText").textContent = `This will also delete ${n} session${n === 1 ? "" : "s"} from calendar.`;
+  $("#cdDontAsk").checked = false;
+  confirmDlg.returnValue = "";
+  confirmDlg.showModal();
+}
+function doDeleteActivity(id, before) {
+  if (before) before();
+  const name = actName(id);
+  deleteActivity(id);
   toast(`Deleted ${name}`);
+}
+confirmDlg.addEventListener("close", () => {
+  const p = pendingDelete;
+  pendingDelete = null;
+  if (!p || confirmDlg.returnValue !== "accept") return;
+  if ($("#cdDontAsk").checked) setAskBeforeDelete(false);
+  doDeleteActivity(p.id, p.before);
 });
 
 /* =========================================================

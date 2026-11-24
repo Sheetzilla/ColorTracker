@@ -138,6 +138,13 @@
       <button id="installBtn" class="btn install-btn hidden">⬇ Install app</button>
       <p id="iosHint" class="hint hidden">On iPhone: tap the <b>Share</b> button in Safari, then <b>Add to Home Screen</b>.</p>
     </div>
+    <div class="settings">
+      <h3 class="drawer-title">Settings</h3>
+      <label class="switch-row">
+        <span>Ask before deleting activities</span>
+        <input type="checkbox" id="askDeleteToggle" class="switch" role="switch">
+      </label>
+    </div>
     <div class="gesture-help">
       <h3 class="drawer-title">Gestures</h3>
       <p>Hold a square and flick it away to delete it.</p>
@@ -157,6 +164,20 @@
         <span class="spacer"></span>
         <button type="button" id="restoreCancel" class="btn">Cancel</button>
         <button type="button" id="restoreGo" class="btn primary">Restore</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Asks before deleting an activity that has sessions -->
+  <dialog id="confirmDeleteDialog" class="dialog">
+    <form method="dialog">
+      <h3 id="cdTitle" tabindex="-1" autofocus>Delete activity?</h3>
+      <p id="cdText" class="restore-info"></p>
+      <label class="check-row"><input type="checkbox" id="cdDontAsk"> Don't notify again</label>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button class="btn" value="cancel">Cancel</button>
+        <button class="btn danger-fill" value="accept">Accept</button>
       </div>
     </form>
   </dialog>
@@ -185,7 +206,7 @@
         <div id="colorPreview" class="color-preview"></div>
       </div>
       <div class="dialog-actions">
-        <button type="button" id="deleteActivityBtn" class="btn danger hidden">Delete</button>
+        <button type="button" id="deleteActivityBtn" class="trash-btn hidden" aria-label="Delete activity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg></button>
         <span class="spacer"></span>
         <button type="button" id="cancelBtn" class="btn">Cancel</button>
         <button type="submit" class="btn primary">Save</button>
