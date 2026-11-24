@@ -119,7 +119,17 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .bw-page h4 i { width: 12px; height: 12px; border-radius: 50%; flex: none; }
 .bw-page p { margin: 0 0 8px; font-size: 14px; line-height: 1.45; color: var(--muted); }
 .bw-page a { color: var(--blue); }
-.bw-page .dialog-actions { margin-top: 16px; }
+.dialog .bw-actions { margin: 0; padding: 12px 22px 16px; background: var(--bg); border-top: 1px solid var(--line); flex: none; }
+.bw-scroll { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: var(--bg); }
+.bw-page { flex: 1 1 auto; min-height: 0; scrollbar-width: none; }
+.bw-page::-webkit-scrollbar { display: none; }
+.bw-sb { position: absolute; top: 10px; bottom: 10px; right: 5px; width: 5px; border-radius: 999px; background: #eef0f3; pointer-events: none; }
+.bw-thumb { display: block; width: 100%; border-radius: 999px; background: #b9bdc3; }
+/* phones: a shorter window with room around it; the text scrolls inside, Got it stays visible */
+@media (max-width: 480px) {
+  .dialog.browser-win { width: calc(100vw - 40px); max-height: 75vh; }
+  .dialog.browser-win form { max-height: 75vh; }
+}
 
 .error { color: var(--red) !important; font-size: 14px; margin-top: 14px !important; }
 

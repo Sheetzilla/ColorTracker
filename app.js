@@ -174,6 +174,22 @@ onAuthStateChanged(auth, (user) => {
 });
 
 $("#whyBtn").addEventListener("click", () => $("#whyDialog").showModal());
+
+// Privacy popup: our own always-visible scroll bar (phones hide theirs), shown only when the text doesn't fit.
+(() => {
+  const page = $("#whyDialog .bw-page"), bar = $("#whyDialog .bw-sb"), thumb = bar.firstElementChild;
+  const update = () => {
+    const extra = page.scrollHeight - page.clientHeight;
+    bar.classList.toggle("hidden", extra <= 1);
+    if (extra <= 1) return;
+    const track = bar.clientHeight;
+    const h = Math.max(28, track * page.clientHeight / page.scrollHeight);
+    thumb.style.height = `${h}px`;
+    thumb.style.transform = `translateY(${(track - h) * page.scrollTop / extra}px)`;
+  };
+  page.addEventListener("scroll", update, { passive: true });
+  new ResizeObserver(update).observe(page);   // also runs when the popup opens
+})();
 $("#whyDialog").addEventListener("click", (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });   // tap outside closes
 
 $("#signinBtn").addEventListener("click", async () => {
