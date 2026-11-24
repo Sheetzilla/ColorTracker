@@ -173,6 +173,9 @@ onAuthStateChanged(auth, (user) => {
   render();
 });
 
+$("#whyBtn").addEventListener("click", () => $("#whyDialog").showModal());
+$("#whyDialog").addEventListener("click", (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });   // tap outside closes
+
 $("#signinBtn").addEventListener("click", async () => {
   $("#signinError").textContent = "";
   const provider = new GoogleAuthProvider();
@@ -733,6 +736,25 @@ function renderGallery() {
   }
 }
 
+/* ---------- Sidebar sections that fold open/closed (remembered on this device) ---------- */
+function setupFold(toggleSel, bodySel, storeKey, openByDefault) {
+  const btn = $(toggleSel), body = $(bodySel);
+  let open = openByDefault;
+  try { const v = localStorage.getItem(storeKey); if (v !== null) open = v === "1"; } catch { /* ignore */ }
+  const apply = () => {
+    btn.setAttribute("aria-expanded", String(open));
+    body.classList.toggle("hidden", !open);
+  };
+  apply();
+  btn.addEventListener("click", () => {
+    open = !open;
+    apply();
+    try { localStorage.setItem(storeKey, open ? "1" : "0"); } catch { /* ignore */ }
+  });
+}
+setupFold("#activitiesToggle", "#activitiesBody", "ct-fold-activities", true);
+setupFold("#backupToggle", "#backupBody", "ct-fold-backup", false);
+
 $("#galleryToggle").addEventListener("click", () => {
   galleryOpen = !galleryOpen;
   $("#galleryToggle").setAttribute("aria-expanded", String(galleryOpen));
@@ -792,8 +814,8 @@ function renderWeek() {
 
   // Animal in the bottom-right corner under Sat–Sun: this month's, or both if the week crosses a month.
   const strip = el("div", "week-animals");
-  strip.append(liveAnimal(start.getFullYear(), start.getMonth(), "xMaxYMid"));
-  if (!sameMonth) strip.append(liveAnimal(end.getFullYear(), end.getMonth(), "xMaxYMid"));
+  strip.append(liveAnimal(start.getFullYear(), start.getMonth(), "xMidYMid"));
+  if (!sameMonth) strip.append(liveAnimal(end.getFullYear(), end.getMonth(), "xMidYMid"));
   box.append(strip);
 
   const cellScroll = saveCellScroll();

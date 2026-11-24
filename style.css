@@ -90,6 +90,37 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 }
 .signin-card h1 { margin: 0 0 8px; font-size: 28px; font-weight: 500; }
 .signin-card p { color: var(--muted); margin: 0 0 20px; }
+.why-link { display: block; margin: 12px auto 0; background: none; border: 0; padding: 4px 8px; cursor: pointer;
+  font-size: 14px; color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.why-link:hover { color: #2f63b8; }
+
+/* "Why sign in" popup, looks like a tiny browser window */
+.dialog.browser-win { width: min(440px, calc(100vw - 24px)); max-height: calc(100vh - 40px); overflow: hidden; border-radius: 18px; animation: pop-in .2s cubic-bezier(.3,1.4,.6,1); }
+.dialog.browser-win form { padding: 0; display: flex; flex-direction: column; max-height: calc(100vh - 40px); }
+.bw-bar { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--side); border-bottom: 1px solid var(--line); }
+.bw-dots { display: flex; gap: 7px; flex: none; }
+.bw-dot { display: block; width: 13px; height: 13px; border-radius: 50%; border: 0; padding: 0; }
+.bw-dots .bw-dot:nth-child(1) { background: #ff9e9e; cursor: pointer; }
+.bw-dots .bw-dot:nth-child(2) { background: #ffd59e; }
+.bw-dots .bw-dot:nth-child(3) { background: #aef59a; }
+.bw-close:hover { filter: brightness(.9); }
+.bw-address { flex: 1; min-width: 0; background: #fff; border: 1px solid var(--line); border-radius: 999px;
+  padding: 4px 12px; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bw-stripe { display: flex; height: 5px; flex: none; }
+.bw-stripe i { flex: 1; }
+.bw-stripe i:nth-child(1) { background: #ff9e9e; }
+.bw-stripe i:nth-child(2) { background: #9ef7f2; }
+.bw-stripe i:nth-child(3) { background: #aef59a; }
+.bw-stripe i:nth-child(4) { background: #d9b4ff; }
+.bw-page { padding: 18px 22px 20px; overflow-y: auto; }
+.bw-page h3:focus { outline: none; }
+.bw-page h3 { margin: 0 0 8px; font-size: 21px; font-weight: 500; }
+.bw-page h4 { display: flex; align-items: center; gap: 8px; margin: 16px 0 4px; font-size: 15px; font-weight: 600; }
+.bw-page h4 i { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.bw-page p { margin: 0 0 8px; font-size: 14px; line-height: 1.45; color: var(--muted); }
+.bw-page a { color: var(--blue); }
+.bw-page .dialog-actions { margin-top: 16px; }
+
 .error { color: var(--red) !important; font-size: 14px; margin-top: 14px !important; }
 
 /* ---------- layout ---------- */
@@ -208,7 +239,7 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .cal.week .wcol { grid-row: 1 / span 2; }
 .cal.week .wcol.wcol-short { grid-row: 1; }
 .week-animals { grid-row: 2; grid-column: 6 / span 2; position: relative; min-height: 0; pointer-events: none;
-  display: flex; justify-content: flex-end; gap: 6px; padding: 6px 4px; }
+  display: flex; justify-content: center; align-items: center; gap: 6px; padding: 6px 4px; }
 .week-animals .fish { flex: 0 1 230px; width: auto; height: 100%; min-width: 0; max-width: 230px; }
 .fish { overflow: visible; }
 .fish-in .fish, .animal-row .fish { position: absolute; top: 6px; bottom: 6px; right: 4px; width: calc(100% - 12px); height: calc(100% - 12px); max-width: 230px; }
@@ -280,6 +311,9 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 
 /* ---------- backup ---------- */
 .backup { margin-top: 18px; }
+.fold { margin-top: 18px; }
+.fold-body, #activitiesBody { animation: pop-in .18s ease-out; }
+#backupBody { margin-top: 6px; }
 .backup-btn { width: 100%; padding: 10px 16px; margin-bottom: 6px; text-align: left; }
 .restore-info { margin: -6px 0 14px; color: var(--muted); font-size: 15px; }
 .restore-opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; margin-bottom: 8px;

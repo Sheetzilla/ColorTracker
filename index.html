@@ -28,9 +28,43 @@
       <h1>ColorTracker</h1>
       <p>Log your sessions and watch your month fill with colour.</p>
       <button id="signinBtn" class="btn primary">Sign in with Google</button>
+      <button id="whyBtn" class="why-link" type="button">Why is this needed?</button>
       <p id="signinError" class="error"></p>
     </div>
   </div>
+
+  <!-- "Why sign in" privacy info, drawn as a little browser window -->
+  <dialog id="whyDialog" class="dialog browser-win" aria-labelledby="whyTitle">
+    <form method="dialog">
+      <div class="bw-bar">
+        <div class="bw-dots">
+          <button class="bw-dot bw-close" value="close" aria-label="Close"></button>
+          <i class="bw-dot"></i><i class="bw-dot"></i>
+        </div>
+        <div class="bw-address">🔒 colortracker / privacy</div>
+      </div>
+      <div class="bw-stripe" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="bw-page">
+        <h3 id="whyTitle" tabindex="-1" autofocus>Why sign in with Google?</h3>
+        <p>Signing in is how ColorTracker knows which data is yours, so your activities and sessions sync between your phone and computer.</p>
+        <h4><i style="background:#ff9e9e"></i>What the app gets from Google</h4>
+        <p>Your name, email address and profile picture. Nothing else: it can't see your Gmail, contacts or files.</p>
+        <h4><i style="background:#9ef7f2"></i>What's saved</h4>
+        <p>Your activities and the sessions you log. They're stored in Google Firebase, locked to your account. Other users can't see them.</p>
+        <p>The developer can technically access the database to fix problems, but doesn't look at or use your data.</p>
+        <h4><i style="background:#aef59a"></i>What's never done</h4>
+        <p>No ads, no tracking, and your data is never sold or shared.</p>
+        <h4><i style="background:#d9b4ff"></i>On your device</h4>
+        <p>The app saves a few settings, like week or month view, plus a copy of your data so it works offline.</p>
+        <h4><i style="background:#ffd59e"></i>Delete your data</h4>
+        <p>Email <a href="mailto:info@sleetsheet.com">info@sleetsheet.com</a> and it will be removed.</p>
+        <div class="dialog-actions">
+          <span class="spacer"></span>
+          <button class="btn primary" value="close">Got it</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
 
   <!-- Main app -->
   <div id="app" class="app hidden">
@@ -70,9 +104,15 @@
       <button id="drawerClose" class="icon-btn" aria-label="Close menu">×</button>
     </div>
     <button id="addActivityBtn" class="btn add-btn">＋ New activity</button>
-    <h3 class="drawer-title">Activities</h3>
-    <p class="hint">Drag an activity onto a day to log a session. Tap one to edit it.</p>
-    <ul id="activityList" class="activity-list"></ul>
+    <div class="fold">
+      <button id="activitiesToggle" class="gallery-toggle" type="button" aria-expanded="true" aria-controls="activitiesBody">
+        <span>Activities</span><span class="chev" aria-hidden="true">›</span>
+      </button>
+      <div id="activitiesBody">
+        <p class="hint">Drag an activity onto a day to log a session. Tap one to edit it.</p>
+        <ul id="activityList" class="activity-list"></ul>
+      </div>
+    </div>
     <div class="gallery">
       <button id="galleryToggle" class="gallery-toggle" type="button" aria-expanded="false" aria-controls="galleryGrid">
         <span>Gallery</span><span class="chev" aria-hidden="true">›</span>
@@ -80,10 +120,14 @@
       <div id="galleryGrid" class="gallery-grid hidden"></div>
     </div>
     <div class="backup">
-      <h3 class="drawer-title">Backup</h3>
-      <button id="backupBtn" class="btn backup-btn" type="button">⬇ Download backup</button>
-      <button id="restoreBtn" class="btn backup-btn" type="button">⬆ Restore from backup</button>
-      <button id="csvBtn" class="btn backup-btn" type="button">📄 Export CSV (for Excel / Sheets)</button>
+      <button id="backupToggle" class="gallery-toggle" type="button" aria-expanded="false" aria-controls="backupBody">
+        <span>Backup</span><span class="chev" aria-hidden="true">›</span>
+      </button>
+      <div id="backupBody" class="fold-body hidden">
+        <button id="backupBtn" class="btn backup-btn" type="button">⬇ Download backup</button>
+        <button id="restoreBtn" class="btn backup-btn" type="button">⬆ Restore from backup</button>
+        <button id="csvBtn" class="btn backup-btn" type="button">📄 Export CSV (for Excel / Sheets)</button>
+      </div>
       <input id="restoreFile" type="file" accept=".json,application/json" hidden>
     </div>
     <div id="installBox" class="install-box hidden">
