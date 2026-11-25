@@ -8,8 +8,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=16";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=16";
+import { firebaseConfig } from "./firebase-config.js?v=17";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=17";
 
 /* =========================================================
    Firebase
@@ -2185,8 +2185,19 @@ const isInstalled = () =>
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-// Installed on an iPhone/iPad: the page runs under the status bar, so give it more room at the top.
-if (isIOS && isInstalled()) document.documentElement.classList.add("ios-app");
+// Installed on an iPhone/iPad. Depending on the iOS version, the app either starts below the status bar
+// (then only a small gap is needed) or runs underneath it (then the top needs the status bar's height).
+// It's underneath when the app's visible height is the whole screen height.
+function checkStatusBar() {
+  const portrait = window.innerHeight >= window.innerWidth;
+  const screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+  document.documentElement.classList.toggle("ios-under-bar", screenH - window.innerHeight < 20);
+}
+if (isIOS && isInstalled()) {
+  document.documentElement.classList.add("ios-app");
+  checkStatusBar();
+  window.addEventListener("resize", checkStatusBar);
+}
 
 let installPrompt = null;
 // Android / Chrome / Edge: offer a real "Install app" button.

@@ -507,8 +507,10 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 /* ---------- installed iPhone app: clear the status bar and its blur ---------- */
 html { background: #fff; }
 .ios-app .app { padding-bottom: max(env(safe-area-inset-bottom), 10px); }
-.ios-app .app-top { padding-top: max(calc(env(safe-area-inset-top) + 12px), 56px); }
-.ios-app .drawer { padding-top: max(calc(env(safe-area-inset-top) + 12px), 56px); }
+.ios-app .app-top { padding-top: 8px; }   /* app starts below the status bar: just a small gap */
+/* app runs underneath the status bar: move the top part and the menu below it */
+.ios-app.ios-under-bar .app-top { padding-top: max(calc(env(safe-area-inset-top) + 8px), 54px); }
+.ios-app.ios-under-bar .drawer { padding-top: max(calc(env(safe-area-inset-top) + 12px), 56px); }
 
 /* ---------- phone tweaks ---------- */
 @media (max-width: 480px) {
