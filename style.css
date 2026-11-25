@@ -491,9 +491,17 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
   animation: toast-in .2s ease-out;
 }
 /* shown as a "popover" so it also appears on top of open windows (like Edit activity) */
+/* sticky message: a small round × sitting on its top-right corner */
+.toast.sticky { position: fixed; overflow: visible; }
+.toast-close { position: absolute; top: -9px; right: -6px; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%;
+  background: var(--side); color: var(--muted); box-shadow: 0 0 0 1px var(--line), 0 2px 6px rgba(0,0,0,.12);
+  font-size: 16px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+.toast-close:hover { color: var(--text); background: #eef1f6; }
+.toast-close::after { content: ""; position: absolute; inset: -10px; }   /* bigger tap area for fingers */
 .toast[popover] { inset: auto; margin: 0; border: 0; left: 50%; right: auto; top: auto; bottom: calc(24px + env(safe-area-inset-bottom)); overflow: visible; }
 .toast.hidden { display: none; }
 .toast:not(.hidden)[popover]:popover-open { display: block; }
+.toast.sticky:not(.hidden)[popover]:popover-open { display: block; }
 @keyframes toast-in { from { transform: translate(-50%, 12px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 
 /* ---------- installed iPhone app: clear the status bar and its blur ---------- */

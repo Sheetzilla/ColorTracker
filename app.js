@@ -8,8 +8,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=14";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=14";
+import { firebaseConfig } from "./firebase-config.js?v=16";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=16";
 
 /* =========================================================
    Firebase
@@ -186,7 +186,7 @@ onAuthStateChanged(auth, (user) => {
   $("#app").classList.remove("hidden");
   setAvatar(user);
   showOfflineInfo();
-  if (!navigator.onLine) toast(OFFLINE_MSG, 5000);
+  if (!navigator.onLine) toast(OFFLINE_MSG, 0);
   subscribe();
   render();
 });
@@ -710,8 +710,11 @@ function showLoadState() {
 }
 // Offline: a message at the bottom (like undo) for a few seconds, when the app opens offline or the connection drops.
 const OFFLINE_MSG = "Offline · showing what's saved on device";
-window.addEventListener("online", () => renderCalendar());
-window.addEventListener("offline", () => { renderCalendar(); if (state.user) toast(OFFLINE_MSG, 5000); });
+window.addEventListener("online", () => {
+  renderCalendar();
+  if ($("#toast").textContent.startsWith(OFFLINE_MSG)) hideToast();   // not true anymore
+});
+window.addEventListener("offline", () => { renderCalendar(); if (state.user) toast(OFFLINE_MSG, 0); });
 
 function calendarShell(rows, headCells) {
   const wrap = el("div", "cal");
@@ -2457,9 +2460,18 @@ $("#restoreGo").addEventListener("click", async () => {
    Toast
    ========================================================= */
 let toastTimer = null;
+// ms = 0: the message stays until closed with its × (used for the offline message).
 function toast(message, ms = 2600) {
   const t = $("#toast");
-  t.textContent = message;
+  t.replaceChildren(el("span", "toast-text", message));
+  t.classList.toggle("sticky", !ms);
+  if (!ms) {
+    const x = el("button", "toast-close", "×");
+    x.type = "button";
+    x.setAttribute("aria-label", "Close");
+    x.addEventListener("click", hideToast);
+    t.append(x);
+  }
   t.classList.remove("hidden");
   if (t.showPopover) {   // re-open on top of any open window
     try { if (t.matches(":popover-open")) t.hidePopover(); t.showPopover(); } catch { /* older browser: normal toast */ }
@@ -2468,8 +2480,11 @@ function toast(message, ms = 2600) {
   void t.offsetWidth;
   t.style.animation = "";
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    t.classList.add("hidden");
-    try { if (t.matches(":popover-open")) t.hidePopover(); } catch { /* ignore */ }
-  }, ms);
+  if (ms) toastTimer = setTimeout(hideToast, ms);
+}
+function hideToast() {
+  const t = $("#toast");
+  clearTimeout(toastTimer);
+  t.classList.add("hidden");
+  try { if (t.matches(":popover-open")) t.hidePopover(); } catch { /* ignore */ }
 }
