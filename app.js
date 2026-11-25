@@ -5,10 +5,11 @@ import {
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js";
 import {
   initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
-  collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField
+  collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
+  query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js";
-import { ANIMALS } from "./animals.js";
+import { firebaseConfig } from "./firebase-config.js?v=10";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=10";
 
 /* =========================================================
    Firebase
@@ -152,6 +153,7 @@ onAuthStateChanged(auth, (user) => {
   $("#loading").classList.add("hidden");
   unsubs.forEach((u) => u());
   unsubs = [];
+  resetSessionLoading();
   state.user = user;
   state.activities = new Map();
   state.sessions = new Map();
@@ -169,6 +171,7 @@ onAuthStateChanged(auth, (user) => {
   $("#signin").classList.add("hidden");
   $("#app").classList.remove("hidden");
   setAvatar(user);
+  showOfflineInfo();
   subscribe();
   render();
 });
@@ -234,13 +237,92 @@ function subscribe() {
     renderPopover();
   }, onDbError));
 
-  unsubs.push(onSnapshot(col("sessions"), (snap) => {
-    state.sessions = new Map(snap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]));
-    indexSessions();
-    renderLists();
-    renderCalendar();
-    renderPopover();
+  // Sessions are loaded month by month (see watchMonth), not all at once.
+}
+
+/* ---------- Loading sessions only for the months being looked at ----------
+   Normal use loads the viewed month ± 1 (so swiping shows the next one at once) and keeps
+   each visited month live. The whole history is loaded only when something needs it
+   (Gallery, backup, CSV, restore). This keeps Firestore reads low as history grows. */
+const monthDocs = new Map();     // "YYYY-MM" (or "all") -> Map(id -> session)
+const monthUnsubs = new Map();   // "YYYY-MM" -> stop listening
+let allSessions = null;          // promise once the whole history has been asked for
+let fullHistory = false;         // the whole history has come from the server this visit (complete on this device)
+
+function resetSessionLoading() {
+  monthUnsubs.forEach((u) => u());
+  monthUnsubs.clear();
+  monthDocs.clear();
+  allSessions = null;
+  fullHistory = false;
+}
+
+function rebuildSessions() {
+  const merged = new Map();
+  for (const m of monthDocs.values()) for (const [id, s] of m) merged.set(id, s);
+  state.sessions = merged;
+  indexSessions();
+  renderLists();
+  renderCalendar();
+  renderPopover();
+}
+
+function watchMonth(y, m) {
+  if (allSessions || !state.user) return;
+  const d = new Date(y, m, 1);
+  const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+  if (monthUnsubs.has(key)) return;
+  const q = query(col("sessions"), where("date", ">=", `${key}-01`), where("date", "<=", `${key}-31`));
+  monthUnsubs.set(key, onSnapshot(q, (snap) => {
+    if (allSessions) return;   // the full history took over
+    monthDocs.set(key, new Map(snap.docs.map((x) => [x.id, { id: x.id, ...x.data() }])));
+    rebuildSessions();
   }, onDbError));
+}
+
+// The months the current view needs: the viewed month (or both months of a week) plus one on each side.
+function ensureLoaded() {
+  if (!state.user || allSessions) return;
+  let a, b;
+  if (state.view === "week") { a = startOfWeek(state.cursor); b = addDays(a, 6); }
+  else { a = b = state.cursor; }
+  for (let d = new Date(a.getFullYear(), a.getMonth() - 1, 1); d <= new Date(b.getFullYear(), b.getMonth() + 1, 1);
+       d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+    watchMonth(d.getFullYear(), d.getMonth());
+  }
+}
+
+// Loads (and keeps live) every session. Resolves once the server has answered,
+// or with what's on the device if offline.
+function loadAllSessions() {
+  if (allSessions) return allSessions;
+  allSessions = new Promise((resolve) => {
+    let done = false;
+    const finish = () => { if (!done) { done = true; resolve(); } };
+    const unsub = onSnapshot(col("sessions"), { includeMetadataChanges: true }, (snap) => {
+      if (monthUnsubs.size) { monthUnsubs.forEach((u) => u()); monthUnsubs.clear(); }
+      monthDocs.clear();
+      monthDocs.set("all", new Map(snap.docs.map((x) => [x.id, { id: x.id, ...x.data() }])));
+      rebuildSessions();
+      if (!snap.metadata.fromCache) fullHistory = true;
+      if (!snap.metadata.fromCache || !navigator.onLine) finish();
+    }, (err) => { onDbError(err); finish(); });
+    unsubs.push(unsub);
+    setTimeout(finish, 10000);   // slow connection: go on with what we have
+  });
+  return allSessions;
+}
+
+// All sessions of one activity (also ones in months not loaded), straight from Firestore.
+async function activitySessions(id) {
+  const found = new Map(sessionsOf(id).map((s) => [s.id, s]));
+  if (!allSessions) {
+    try {
+      const snap = await getDocs(query(col("sessions"), where("activityId", "==", id)));
+      for (const x of snap.docs) found.set(x.id, { id: x.id, ...x.data() });
+    } catch (err) { console.error(err); }
+  }
+  return [...found.values()];
 }
 
 function indexSessions() {
@@ -425,11 +507,11 @@ function reorderActivities(ids) {
   });
 }
 
-function deleteActivity(id) {
+function deleteActivity(id, sessions = sessionsOf(id)) {
   const a = state.activities.get(id);
   if (!a) return;
   const data = strip(a);
-  const saved = sessionsOf(id).map((s) => ({ id: s.id, data: strip(s) }));
+  const saved = sessions.map((s) => ({ id: s.id, data: strip(s) }));
   const remove = () => {
     del("activities", id);
     batchWrite(saved.map((s) => ({ name: "sessions", id: s.id })));
@@ -581,6 +663,7 @@ function makeBlock(s) {
 
 function renderCalendar() {
   if (!state.user) return;
+  ensureLoaded();
   if (state.view === "week") renderWeek();
   else renderMonth();
   markSelectedDay();
@@ -844,7 +927,7 @@ function setupFold(toggleSel, bodySel, storeKey, openByDefault) {
     try { localStorage.setItem(storeKey, open ? "1" : "0"); } catch { /* ignore */ }
   });
 }
-setupFold("#activitiesToggle", "#activitiesBody", "ct-fold-activities", true);
+setupFold("#activitiesToggle", "#activitiesBody", "ct-fold-activities-v2", false);   // new key: everyone starts closed once
 setupFold("#backupToggle", "#backupBody", "ct-fold-backup", false);
 
 $("#galleryToggle").addEventListener("click", () => {
@@ -853,8 +936,11 @@ $("#galleryToggle").addEventListener("click", () => {
   $("#galleryGrid").classList.toggle("hidden", !galleryOpen);
   $("#galleryDownload").classList.toggle("hidden", !galleryOpen);
   renderGallery();
+  if (galleryOpen) loadAllSessions();   // every animal needs its month's sessions
 });
-$("#galleryDownload").addEventListener("click", () => {
+$("#galleryDownload").addEventListener("click", async () => {
+  if (!needOnline("download all months")) return;
+  await loadAllSessions();
   const months = galleryMonths();
   askImage(months, "colortracker-gallery.jpg", months.length === 1 ? "1 month" : `All ${months.length} months`);
 });
@@ -877,6 +963,8 @@ function askImage(months, name, label) {
 // Draws the real image and shows it shrunk at the top of the popup.
 async function updateImgPreview() {
   if (!imgRequest) return;
+  if (imgRequest.months.length > 1) await loadAllSessions();
+  if (!imgRequest) return;
   const token = ++previewToken;
   const canvas = await animalCanvas(imgRequest.months, $("#imgStats").checked);
   if (token !== previewToken || !imgRequest) return;   // a newer preview is on its way
@@ -889,6 +977,7 @@ imgDlg.addEventListener("close", async () => {
   imgRequest = null;
   if (!req || imgDlg.returnValue !== "ok") return;
   try {
+    if (req.months.length > 1) await loadAllSessions();
     const canvas = await animalCanvas(req.months, $("#imgStats").checked);
     const blob = await new Promise((resolve, reject) =>
       canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/jpeg", 0.92));
@@ -2011,10 +2100,12 @@ $("#deleteActivityBtn").addEventListener("click", () => {
 const confirmDlg = $("#confirmDeleteDialog");
 let pendingDelete = null;   // { id, before }
 
-function requestDeleteActivity(id, before) {
+async function requestDeleteActivity(id, before) {
+  if (!state.activities.has(id) || !needOnline("delete an activity")) return;
+  const list = await activitySessions(id);   // includes months that aren't loaded
   if (!state.activities.has(id)) return;
-  const n = sessionsOf(id).length;
-  pendingDelete = { id, before };
+  const n = list.length;
+  pendingDelete = { id, before, list };
   $("#cdTitle").textContent = `Delete ${actName(id)}?`;
   $("#cdSessionsText").textContent = `Also delete its ${n} session${n === 1 ? "" : "s"} from the calendar`;
   $("#cdSessionsRow").classList.toggle("hidden", !n);   // nothing logged: nothing to ask
@@ -2026,10 +2117,10 @@ confirmDlg.addEventListener("close", () => {
   const p = pendingDelete;
   pendingDelete = null;
   if (!p || confirmDlg.returnValue !== "accept") return;
-  const keep = sessionsOf(p.id).length > 0 && !$("#cdDeleteSessions").checked;
+  const keep = p.list.length > 0 && !$("#cdDeleteSessions").checked;
   if (p.before) p.before();
   const name = actName(p.id);
-  if (keep) hideActivity(p.id); else deleteActivity(p.id);
+  if (keep) hideActivity(p.id); else deleteActivity(p.id, p.list);
   toast(keep ? `Removed ${name} (sessions kept)` : `Deleted ${name}`);
 });
 
@@ -2099,8 +2190,55 @@ function needUser() {
   return false;
 }
 
-$("#backupBtn").addEventListener("click", () => {
+// Backup, CSV and restore need the whole history, not just the loaded months.
+async function withAllSessions() {
+  if (!allSessions) toast("Loading all sessions…");
+  await loadAllSessions();
+}
+
+/* ---------- Menu: save the whole history on this device for offline use ---------- */
+const offlineKey = () => `ct-offline-saved-${state.user ? state.user.uid : ""}`;
+function fmtWhen(t) {
+  const d = new Date(t), now = new Date();
+  const hm = `${d.getHours()}:${pad(d.getMinutes())}`;
+  return `${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear() === now.getFullYear() ? "" : d.getFullYear()} ${hm}`;
+}
+function showOfflineInfo() {
+  let t = null;
+  try { t = localStorage.getItem(offlineKey()); } catch { /* ignore */ }
+  $("#offlineInfo").textContent = t ? `Last saved on this device: ${fmtWhen(Number(t))}` : "Not saved on this device yet.";
+}
+const waitFor = (test, ms) => new Promise((resolve) => {
+  const start = Date.now();
+  (function check() { if (test() || Date.now() - start > ms) resolve(test()); else setTimeout(check, 150); })();
+});
+$("#offlineBtn").addEventListener("click", async () => {
   if (!needUser()) return;
+  if (!navigator.onLine) return toast("You're offline. Connect to the internet to save all data.");
+  const btn = $("#offlineBtn");
+  btn.disabled = true;
+  toast("Saving all data…");
+  await loadAllSessions();
+  const ok = await waitFor(() => fullHistory, 10000);   // wait for the server's answer, not just the device copy
+  btn.disabled = false;
+  if (!ok) return toast("Couldn't reach the server. Please try again.");
+  try { localStorage.setItem(offlineKey(), String(Date.now())); } catch { /* ignore */ }
+  showOfflineInfo();
+  const n = state.sessions.size;
+  toast(`All ${n} session${n === 1 ? "" : "s"} saved on this device for offline use.`);
+});
+
+// Things that need the whole history can't be done offline (unless it's already all on the device):
+// shows a message at the bottom and returns false.
+function needOnline(what) {
+  if (navigator.onLine || fullHistory) return true;
+  toast(`You're offline. Connect to the internet to ${what}.`);
+  return false;
+}
+
+$("#backupBtn").addEventListener("click", async () => {
+  if (!needUser() || !needOnline("make a complete backup")) return;
+  await withAllSessions();
   const data = {
     app: "ColorTracker",
     version: 1,
@@ -2112,8 +2250,9 @@ $("#backupBtn").addEventListener("click", () => {
   toast(`Backup saved: ${data.activities.length} activities, ${data.sessions.length} sessions.`);
 });
 
-$("#csvBtn").addEventListener("click", () => {
-  if (!needUser()) return;
+$("#csvBtn").addEventListener("click", async () => {
+  if (!needUser() || !needOnline("export all sessions")) return;
+  await withAllSessions();
   const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const rows = [["Date", "Week", "Activity", "Minutes", "Colour"].map(q).join(";")];
   const list = [...state.sessions.values()].sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt || 0) - (b.createdAt || 0));
@@ -2131,7 +2270,8 @@ const restoreDlg = $("#restoreDialog");
 let pendingRestore = null;
 
 $("#restoreBtn").addEventListener("click", () => {
-  if (!needUser()) return;
+  if (!needUser() || !needOnline("restore a backup")) return;
+  withAllSessions();   // "replace" needs to know every current session
   $("#restoreFile").value = "";
   $("#restoreFile").click();
 });
@@ -2190,8 +2330,10 @@ $("#restoreFile").addEventListener("change", async (e) => {
 
 $("#restoreCancel").addEventListener("click", () => { pendingRestore = null; restoreDlg.close(); });
 
-$("#restoreGo").addEventListener("click", () => {
+$("#restoreGo").addEventListener("click", async () => {
   if (!pendingRestore || !state.user) return;
+  await withAllSessions();
+  if (!pendingRestore) return;
   const mode = restoreDlg.querySelector('input[name="restoreMode"]:checked').value;
   if (mode === "replace" && !confirm("Delete all your current activities and sessions and replace them with the backup?")) return;
   const ops = [];
@@ -2218,9 +2360,15 @@ function toast(message) {
   const t = $("#toast");
   t.textContent = message;
   t.classList.remove("hidden");
+  if (t.showPopover) {   // re-open on top of any open window
+    try { if (t.matches(":popover-open")) t.hidePopover(); t.showPopover(); } catch { /* older browser: normal toast */ }
+  }
   t.style.animation = "none";
   void t.offsetWidth;
   t.style.animation = "";
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.add("hidden"), 2600);
+  toastTimer = setTimeout(() => {
+    t.classList.add("hidden");
+    try { if (t.matches(":popover-open")) t.hidePopover(); } catch { /* ignore */ }
+  }, 2600);
 }

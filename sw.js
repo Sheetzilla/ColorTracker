@@ -3,14 +3,15 @@
 // - Firebase code and fonts: saved once, then loaded from the device.
 // - Your data and sign-in are NOT touched here; Firebase handles those itself.
 
-const CACHE = "colortracker-v6";
+const VERSION = "10";   // app version: same number as ?v= in index.html and app.js
+const CACHE = `colortracker-v${VERSION}`;
 const SHELL = [
   "./",
   "./index.html",
-  "./style.css",
-  "./app.js",
-  "./firebase-config.js",
-  "./animals.js",
+  `./style.css?v=${VERSION}`,
+  `./app.js?v=${VERSION}`,
+  `./firebase-config.js?v=${VERSION}`,
+  `./animals.js?v=${VERSION}`,
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
@@ -49,7 +50,7 @@ self.addEventListener("fetch", (event) => {
 async function networkFirst(req) {
   const cache = await caches.open(CACHE);
   try {
-    const res = await fetch(req);
+    const res = await fetch(req, { cache: "no-cache" });   // ask the server, don't reuse a stale browser copy
     if (res.ok) cache.put(req, res.clone());
     return res;
   } catch (err) {

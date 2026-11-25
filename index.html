@@ -16,7 +16,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <!-- ?v= is the app version: raised with every update (also in app.js imports and sw.js),
+       so the browser always loads files that belong together. -->
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
   <div id="loading" class="loading">Loading…</div>
@@ -114,10 +116,10 @@
     </div>
     <button id="addActivityBtn" class="btn add-btn">＋ New activity</button>
     <div class="fold">
-      <button id="activitiesToggle" class="gallery-toggle" type="button" aria-expanded="true" aria-controls="activitiesBody">
+      <button id="activitiesToggle" class="gallery-toggle" type="button" aria-expanded="false" aria-controls="activitiesBody">
         <span>Activities</span><span class="chev" aria-hidden="true">›</span>
       </button>
-      <div id="activitiesBody">
+      <div id="activitiesBody" class="hidden">
         <p class="hint">Drag an activity onto a day to log a session. Tap one to edit it.</p>
         <ul id="activityList" class="activity-list"></ul>
       </div>
@@ -151,6 +153,8 @@
         <span>Swipe to change month / week</span>
         <input type="checkbox" id="swipeToggle" class="switch" role="switch">
       </label>
+      <button id="offlineBtn" class="btn backup-btn offline-btn" type="button">⬇ Save all data for offline use</button>
+      <p id="offlineInfo" class="hint offline-info"></p>
     </div>
     <div class="gesture-help">
       <h3 class="drawer-title">Gestures</h3>
@@ -237,8 +241,8 @@
     </form>
   </dialog>
 
-  <div id="toast" class="toast hidden"></div>
+  <div id="toast" class="toast hidden" popover="manual" role="status"></div>
 
-  <script type="module" src="app.js"></script>
+  <script type="module" src="app.js?v=10"></script>
 </body>
 </html>
