@@ -8,8 +8,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=10";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=10";
+import { firebaseConfig } from "./firebase-config.js?v=11";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=11";
 
 /* =========================================================
    Firebase
@@ -119,7 +119,7 @@ function hslToHex(h, s, l) {
 // 15 min very light · 30 min medium-light · 1 h medium · 2 h deep · 3 h+ deepest
 function shade(baseHex, minutes) {
   const { h, s } = hexToHsl(baseHex);
-  const t = Math.pow(Math.min(Math.max(minutes, 5), 180) / 180, 0.75);
+  const t = Math.pow(Math.min(Math.max(minutes, 5), 120) / 120, 0.75);   // 2 h and longer = darkest
   const light = 86 - 50 * t;
   const sat = Math.max(20, s * (0.55 + 0.45 * t));
   return `hsl(${h.toFixed(0)} ${sat.toFixed(0)}% ${light.toFixed(0)}%)`;
@@ -2049,7 +2049,7 @@ function updatePreview() {
   const current = Math.round(Number($("#actMinutes").value));
   const box = $("#colorPreview");
   box.innerHTML = "";
-  for (const [m, label] of [[15, "15 min"], [30, "30 min"], [60, "1 h"], [120, "2 h"], [180, "3 h"]]) {
+  for (const [m, label] of [[15, "15 min"], [30, "30 min"], [45, "45 min"], [60, "1 h"], [120, "2 h"]]) {
     const b = el("button", m === current ? "sel" : "");
     b.type = "button";
     b.dataset.min = m;
