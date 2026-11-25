@@ -8,8 +8,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=12";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=12";
+import { firebaseConfig } from "./firebase-config.js?v=14";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=14";
 
 /* =========================================================
    Firebase
@@ -186,6 +186,7 @@ onAuthStateChanged(auth, (user) => {
   $("#app").classList.remove("hidden");
   setAvatar(user);
   showOfflineInfo();
+  if (!navigator.onLine) toast(OFFLINE_MSG, 5000);
   subscribe();
   render();
 });
@@ -267,6 +268,7 @@ function subscribe() {
    (Gallery, backup, CSV, restore). This keeps Firestore reads low as history grows. */
 const monthDocs = new Map();     // "YYYY-MM" (or "all") -> Map(id -> session)
 const monthUnsubs = new Map();   // "YYYY-MM" -> stop listening
+const monthFromServer = new Set(); // months whose data the server has confirmed (not just the device copy)
 let allSessions = null;          // promise once the whole history has been asked for
 let fullHistory = false;         // the whole history has come from the server this visit (complete on this device)
 
@@ -274,6 +276,7 @@ function resetSessionLoading() {
   monthUnsubs.forEach((u) => u());
   monthUnsubs.clear();
   monthDocs.clear();
+  monthFromServer.clear();
   allSessions = null;
   fullHistory = false;
 }
@@ -294,8 +297,9 @@ function watchMonth(y, m) {
   const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
   if (monthUnsubs.has(key)) return;
   const q = query(col("sessions"), where("date", ">=", `${key}-01`), where("date", "<=", `${key}-31`));
-  monthUnsubs.set(key, onSnapshot(q, (snap) => {
+  monthUnsubs.set(key, onSnapshot(q, { includeMetadataChanges: true }, (snap) => {
     if (allSessions) return;   // the full history took over
+    if (!snap.metadata.fromCache) monthFromServer.add(key);
     monthDocs.set(key, new Map(snap.docs.map((x) => [x.id, { id: x.id, ...x.data() }])));
     rebuildSessions();
   }, onDbError));
@@ -688,7 +692,26 @@ function renderCalendar() {
   if (state.view === "week") renderWeek();
   else renderMonth();
   markSelectedDay();
+  showLoadState();
 }
+
+// The colour stripe on top of the calendar runs until the viewed month(s) have come from the server.
+function viewMonths() {
+  const a = state.view === "week" ? startOfWeek(state.cursor) : state.cursor;
+  const b = state.view === "week" ? addDays(a, 6) : a;
+  const key = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+  return [...new Set([key(a), key(b)])];
+}
+function showLoadState() {
+  const wrap = $("#calendar").firstElementChild;
+  if (!wrap) return;
+  const loading = navigator.onLine && !fullHistory && viewMonths().some((k) => !monthFromServer.has(k));
+  wrap.classList.toggle("is-loading", loading);
+}
+// Offline: a message at the bottom (like undo) for a few seconds, when the app opens offline or the connection drops.
+const OFFLINE_MSG = "Offline · showing what's saved on device";
+window.addEventListener("online", () => renderCalendar());
+window.addEventListener("offline", () => { renderCalendar(); if (state.user) toast(OFFLINE_MSG, 5000); });
 
 function calendarShell(rows, headCells) {
   const wrap = el("div", "cal");
@@ -698,6 +721,7 @@ function calendarShell(rows, headCells) {
   const body = el("div", "cal-body");
   const wknos = el("div", "wknos");
   const box = el("div", "box");
+  box.append(el("div", "load-stripe"));   // shows while this month is still loading
   body.append(wknos, box);
   wrap.append(head, body);
   return { wrap, wknos, box };
@@ -2433,7 +2457,7 @@ $("#restoreGo").addEventListener("click", async () => {
    Toast
    ========================================================= */
 let toastTimer = null;
-function toast(message) {
+function toast(message, ms = 2600) {
   const t = $("#toast");
   t.textContent = message;
   t.classList.remove("hidden");
@@ -2447,5 +2471,5 @@ function toast(message) {
   toastTimer = setTimeout(() => {
     t.classList.add("hidden");
     try { if (t.matches(":popover-open")) t.hidePopover(); } catch { /* ignore */ }
-  }, 2600);
+  }, ms);
 }
