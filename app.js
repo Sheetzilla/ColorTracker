@@ -8,8 +8,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=11";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=11";
+import { firebaseConfig } from "./firebase-config.js?v=12";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=12";
 
 /* =========================================================
    Firebase
@@ -81,6 +81,20 @@ function fmtMinutes(m) {
   const h = Math.floor(m / 60), r = m % 60;
   return r ? `${h} h ${r} min` : `${h} h`;
 }
+// Reads a length the way people write it: "90", "1:30", "2h", "1h 30", "1.5h", "45 min". Returns minutes or null.
+function parseDuration(text) {
+  const t = String(text ?? "").trim().toLowerCase().replace(",", ".");
+  if (!t) return null;
+  let m = null, r;
+  if (/^\d+$/.test(t)) m = Number(t);
+  else if ((r = t.match(/^(\d+):([0-5]?\d)$/))) m = Number(r[1]) * 60 + Number(r[2]);
+  else if ((r = t.match(/^(?:(\d+(?:\.\d+)?)\s*h(?:ours?|rs?)?)?\s*(?:(\d+)\s*(?:m|min|mins|minutes?)?)?$/)) && (r[1] || r[2])) {
+    m = Math.round(Number(r[1] || 0) * 60 + Number(r[2] || 0));
+  }
+  return Number.isFinite(m) && m > 0 ? m : null;
+}
+// How a length is written back into a box: "45" or "1:30".
+const boxDuration = (m) => (m < 60 ? String(m) : `${Math.floor(m / 60)}:${pad(m % 60)}`);
 // Compact version for tight spots, e.g. "45m", "2h", "2h30".
 function fmtShort(m) {
   if (m < 60) return `${m}m`;
@@ -237,6 +251,13 @@ function subscribe() {
     renderPopover();
   }, onDbError));
 
+  // Your settings that sync between devices (e.g. the session length buttons).
+  unsubs.push(onSnapshot(docRef("settings", "prefs"), (snap) => {
+    const p = snap.exists() ? snap.data() : null;
+    state.lengths = validLengths(p && p.lengths) || DEFAULT_LENGTHS.slice();
+    renderLengthInputs();
+    if (dlg.open) updatePreview();
+  }, onDbError));
   // Sessions are loaded month by month (see watchMonth), not all at once.
 }
 
@@ -929,6 +950,7 @@ function setupFold(toggleSel, bodySel, storeKey, openByDefault) {
 }
 setupFold("#activitiesToggle", "#activitiesBody", "ct-fold-activities-v2", false);   // new key: everyone starts closed once
 setupFold("#backupToggle", "#backupBody", "ct-fold-backup", false);
+setupFold("#settingsToggle", "#settingsBody", "ct-fold-settings", false);
 
 $("#galleryToggle").addEventListener("click", () => {
   galleryOpen = !galleryOpen;
@@ -2034,7 +2056,7 @@ function openActivityDialog(id) {
   const a = id ? state.activities.get(id) : null;
   $("#dialogTitle").textContent = a ? "Edit activity" : "New activity";
   $("#actName").value = a ? a.name : "";
-  $("#actMinutes").value = a ? a.defaultMinutes || 30 : 30;
+  $("#actMinutes").value = boxDuration(a ? a.defaultMinutes || 30 : 30);
   $("#actColor").value = a ? a.color : autoColor();
   const delBtn = $("#deleteActivityBtn");
   delBtn.classList.toggle("hidden", !a);
@@ -2046,10 +2068,10 @@ function openActivityDialog(id) {
 // The shade circles double as quick buttons for the default length.
 function updatePreview() {
   const color = $("#actColor").value;
-  const current = Math.round(Number($("#actMinutes").value));
+  const current = parseDuration($("#actMinutes").value);
   const box = $("#colorPreview");
   box.innerHTML = "";
-  for (const [m, label] of [[15, "15 min"], [30, "30 min"], [45, "45 min"], [60, "1 h"], [120, "2 h"]]) {
+  for (const [m, label] of (state.lengths || DEFAULT_LENGTHS).map((m) => [m, fmtMinutes(m)])) {
     const b = el("button", m === current ? "sel" : "");
     b.type = "button";
     b.dataset.min = m;
@@ -2064,7 +2086,7 @@ function updatePreview() {
 $("#colorPreview").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-min]");
   if (!b) return;
-  $("#actMinutes").value = b.dataset.min;
+  $("#actMinutes").value = boxDuration(Number(b.dataset.min));
   updatePreview();
   const i = $(`#colorPreview button[data-min="${b.dataset.min}"] i`);
   if (i) i.animate([{ transform: "scale(1)" }, { transform: "scale(1.35)" }, { transform: "scale(1.12)" }], { duration: 260, easing: "ease-out" });
@@ -2082,8 +2104,8 @@ $("#activityForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const name = $("#actName").value.trim();
   if (!name) return;
-  let minutes = Math.round(Number($("#actMinutes").value));
-  if (!Number.isFinite(minutes) || minutes < 5) minutes = 30;
+  let minutes = parseDuration($("#actMinutes").value);   // "90", "1:30", "2h"…
+  if (!minutes) minutes = 30;
   minutes = Math.min(600, minutes);
   const color = $("#actColor").value;
   dlg.close();
@@ -2195,6 +2217,61 @@ async function withAllSessions() {
   if (!allSessions) toast("Loading all sessions…");
   await loadAllSessions();
 }
+
+/* ---------- Settings: your own session length buttons (synced through Firebase) ---------- */
+const DEFAULT_LENGTHS = [15, 30, 45, 60, 120];
+function validLengths(v) {
+  return Array.isArray(v) && v.length === 5 && v.every((m) => Number.isInteger(m) && m >= 1 && m <= 600) ? v.slice() : null;
+}
+function renderLengthInputs() {
+  const grid = $("#lenInputs");
+  const lengths = state.lengths || DEFAULT_LENGTHS;
+  if (grid.children.length !== 10) {
+    grid.innerHTML = "";
+    lengths.forEach((_, i) => {
+      const id = `len${i}`;
+      const lab = el("label", "", `Time ${i + 1}:`);
+      lab.htmlFor = id;
+      const inp = el("input");
+      inp.id = id; inp.type = "text"; inp.autocomplete = "off"; inp.dataset.i = i;
+      grid.append(lab, inp);
+    });
+  }
+  grid.querySelectorAll("input").forEach((inp) => {
+    if (document.activeElement !== inp) { inp.value = boxDuration(lengths[inp.dataset.i]); inp.classList.remove("bad"); }
+  });
+}
+function saveLengths(lengths) {
+  state.lengths = lengths;
+  setDoc(docRef("settings", "prefs"), { lengths }, { merge: true }).catch(onDbError);
+  if (dlg.open) updatePreview();
+}
+$("#lenInputs").addEventListener("input", (e) => {
+  const inp = e.target.closest("input");
+  if (inp) inp.classList.toggle("bad", inp.value.trim() !== "" && !(parseDuration(inp.value) <= 600));
+});
+$("#lenInputs").addEventListener("change", (e) => {
+  const inp = e.target.closest("input");
+  if (!inp || !state.user) return;
+  const lengths = (state.lengths || DEFAULT_LENGTHS).slice();
+  const m = parseDuration(inp.value);
+  if (m && m <= 600) {
+    lengths[inp.dataset.i] = m;
+    saveLengths(lengths);
+  } else if (inp.value.trim()) {
+    toast("Use minutes (90) or hours:minutes (1:30), up to 10 h.");
+  }
+  inp.value = boxDuration(lengths[inp.dataset.i]);   // tidy, or back to the previous value
+  inp.classList.remove("bad");
+});
+$("#lenInputs").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
+$("#lenReset").addEventListener("click", () => {
+  if (!state.user) return;
+  saveLengths(DEFAULT_LENGTHS.slice());
+  renderLengthInputs();
+  toast("Session length buttons reset.");
+});
+renderLengthInputs();
 
 /* ---------- Menu: save the whole history on this device for offline use ---------- */
 const offlineKey = () => `ct-offline-saved-${state.user ? state.user.uid : ""}`;

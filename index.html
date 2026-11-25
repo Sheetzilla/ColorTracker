@@ -18,7 +18,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- ?v= is the app version: raised with every update (also in app.js imports and sw.js),
        so the browser always loads files that belong together. -->
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
   <div id="loading" class="loading">Loading…</div>
@@ -147,14 +147,24 @@
       <button id="installBtn" class="btn install-btn hidden">⬇ Install app</button>
       <p id="iosHint" class="hint hidden">On iPhone: tap the <b>Share</b> button in Safari, then <b>Add to Home Screen</b>.</p>
     </div>
-    <div class="settings">
-      <h3 class="drawer-title">Settings</h3>
+    <div class="settings fold">
+      <button id="settingsToggle" class="gallery-toggle" type="button" aria-expanded="false" aria-controls="settingsBody">
+        <span>Settings</span><span class="chev" aria-hidden="true">›</span>
+      </button>
+      <div id="settingsBody" class="fold-body hidden">
       <label class="switch-row">
         <span>Swipe to change month / week</span>
         <input type="checkbox" id="swipeToggle" class="switch" role="switch">
       </label>
       <button id="offlineBtn" class="btn backup-btn offline-btn" type="button">⬇ Save all data for offline use</button>
       <p id="offlineInfo" class="hint offline-info"></p>
+      <div class="len-settings">
+        <p class="len-title">Session length buttons</p>
+        <p class="hint">Shown in the Edit activity window. Write minutes (90) or hours:minutes (1:30).</p>
+        <div id="lenInputs" class="len-grid"></div>
+        <button id="lenReset" class="link-btn" type="button">Reset to default</button>
+      </div>
+      </div>
     </div>
     <div class="gesture-help">
       <h3 class="drawer-title">Gestures</h3>
@@ -221,8 +231,8 @@
         <input id="actName" required maxlength="40" placeholder="e.g. Study Russian" autocomplete="off">
       </label>
       <label class="field">
-        <span>Default session length (minutes)</span>
-        <input id="actMinutes" type="number" min="5" max="600" step="5" value="30">
+        <span>Default session length (minutes or h:mm)</span>
+        <input id="actMinutes" type="text" autocomplete="off" value="30">
       </label>
       <div class="field">
         <span>Colour</span>
@@ -243,6 +253,6 @@
 
   <div id="toast" class="toast hidden" popover="manual" role="status"></div>
 
-  <script type="module" src="app.js?v=11"></script>
+  <script type="module" src="app.js?v=12"></script>
 </body>
 </html>

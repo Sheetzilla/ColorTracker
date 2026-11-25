@@ -355,6 +355,18 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .settings { margin-top: 4px; }
 .offline-btn { margin-top: 10px; }
 .offline-info { margin: 4px 4px 0; }
+/* Settings: your own session length buttons */
+.settings.fold { margin-top: 18px; }   /* same spacing as the headings above */
+.len-settings { margin-top: 16px; padding: 0 4px; }
+.len-settings .hint { margin: 0; padding: 0; }
+.len-title { margin: 0 0 2px; font-size: 14px; font-weight: 600; }
+.len-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; margin: 8px 0 4px; }
+.len-grid label { font-size: 14px; color: var(--muted); }
+.len-grid input { width: 100%; max-width: 110px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px;
+  background: #fff; color: var(--text); font: inherit; font-size: 15px; }
+.len-grid input:focus { outline: 2px solid var(--blue); outline-offset: 1px; border-color: transparent; }
+.len-grid input.bad { border-color: var(--red); }
+.link-btn { background: none; border: 0; padding: 4px 0; color: var(--blue); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px; font-size: 14px; cursor: pointer; }
 .switch { appearance: none; -webkit-appearance: none; flex: none; position: relative; width: 38px; height: 22px; margin: 0;
   border-radius: 999px; background: #c9ccd1; cursor: pointer; transition: background .2s ease; }
