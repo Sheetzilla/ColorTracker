@@ -45,7 +45,7 @@ Without this, the email and "Try without an account" buttons show "This sign-in 
 - **iPhone (Safari):** open the address, tap **Share → Add to Home Screen**.
 - **Computer (Chrome/Edge):** click the install icon at the right end of the address bar.
 
-Sign in with the same account (email or Google) everywhere. Guests can tap the **×** button in the top right → **Log in** to create an account later and keep their data. The app opens full-screen from its own icon, works offline (changes sync when you're back online) and updates itself when you upload new files to GitHub. After an update, close and reopen the app once to get the new version.
+Sign in with the same account (email or Google) everywhere. Guests can tap the **×** button in the top right → **Save my data** to create an account later and keep their data. The app opens full-screen from its own icon, works offline (changes sync when you're back online) and updates itself when you upload new files to GitHub. After an update, close and reopen the app once to get the new version.
 
 ## How to use
 

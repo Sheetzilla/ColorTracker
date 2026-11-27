@@ -10,8 +10,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=32";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=32";
+import { firebaseConfig } from "./firebase-config.js?v=33";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=33";
 
 /* =========================================================
    Firebase
@@ -2332,8 +2332,8 @@ function renderPopover() {
       const trash = `<button class="trash-btn" data-act="danger" aria-label="Delete user and all data"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg></button>`;
       if (isGuest()) {
         popEl.innerHTML = `<p class="pop-email pop-guest">User not logged in</p>` +
-          `<p class="pop-note">Your data is saved on this device only and doesn't sync. <b class="pop-days"></b></p>` +
-          `<div class="pop-acct"><button class="btn primary" data-act="login">Log in</button>${trash}</div>` + privacy;
+          `<p class="pop-note">Your data is automatically saved on this device only and doesn't sync. <b class="pop-days"></b></p>` +
+          `<div class="pop-acct"><button class="btn primary" data-act="login">Save my data</button>${trash}</div>` + privacy;
       } else {
         popEl.innerHTML = `<p class="pop-email"></p><div class="pop-acct"><button class="btn" data-act="signout">Sign out</button>${trash}</div>` + privacy;
         popEl.querySelector(".pop-email").textContent = state.user ? userEmail(state.user) : "";

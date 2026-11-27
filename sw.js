@@ -3,7 +3,7 @@
 // - Firebase code and fonts: saved once, then loaded from the device.
 // - Your data and sign-in are NOT touched here; Firebase handles those itself.
 
-const VERSION = "32";   // app version: same number as ?v= in index.html and app.js
+const VERSION = "33";   // app version: same number as ?v= in index.html and app.js
 const CACHE = `colortracker-v${VERSION}`;
 const SHELL = [
   "./",
