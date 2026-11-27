@@ -18,7 +18,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- ?v= is the app version: raised with every update (also in app.js imports and sw.js),
        so the browser always loads files that belong together. -->
-  <link rel="stylesheet" href="style.css?v=20">
+  <link rel="stylesheet" href="style.css?v=22">
 </head>
 <body>
   <div id="loading" class="loading">Loading…</div>
@@ -273,13 +273,16 @@
   <!-- Options before saving an animal picture -->
   <dialog id="imgDialog" class="dialog">
     <form method="dialog">
-      <h3 id="imgTitle" tabindex="-1" autofocus>Download image</h3>
+      <div class="img-head">
+        <button class="icon-btn img-back" value="cancel" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <h3 id="imgTitle" tabindex="-1" autofocus>Image</h3>
+      </div>
       <div id="imgPreview" class="img-preview" aria-label="Preview"></div>
       <p id="imgInfo" class="restore-info"></p>
       <label class="check-row"><input type="checkbox" id="imgStats"> Show stats (sessions and total time)</label>
       <div class="dialog-actions">
         <span class="spacer"></span>
-        <button class="btn" value="cancel">Cancel</button>
+        <button id="imgCopy" class="btn" type="button">Copy image</button>
         <button class="btn primary" value="ok">Download</button>
       </div>
     </form>
@@ -332,6 +335,6 @@
 
   <div id="toast" class="toast hidden" popover="manual" role="status"></div>
 
-  <script type="module" src="app.js?v=20"></script>
+  <script type="module" src="app.js?v=22"></script>
 </body>
 </html>

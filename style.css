@@ -596,3 +596,12 @@ html { background: #fff; }
   .blocks { gap: 5px; }
   .wcol .blocks { gap: 8px; }
 }
+/* image window: three buttons share the row evenly so they fit on phones */
+#imgDialog .dialog-actions .spacer { display: none; }
+#imgDialog .dialog-actions .btn { flex: 1; padding: 8px 6px; white-space: nowrap; }
+/* image window: back arrow on the left, title centred */
+.img-head { position: relative; display: flex; align-items: center; justify-content: center; margin: -6px 0 14px; min-height: 36px; }
+.img-head h3 { margin: 0; }
+#imgTitle:focus { outline: none; }
+.img-back { position: absolute; left: -6px; top: 50%; transform: translateY(-50%); }
+.img-back svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }

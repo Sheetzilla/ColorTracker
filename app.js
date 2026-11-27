@@ -10,8 +10,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=20";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=20";
+import { firebaseConfig } from "./firebase-config.js?v=22";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=22";
 
 /* =========================================================
    Firebase
@@ -1280,6 +1280,34 @@ imgDlg.addEventListener("close", async () => {
   } catch (err) {
     console.error(err);
     toast("Couldn't make the image");
+  }
+});
+
+// Copy image: the same picture as Download, as a PNG (browsers only copy PNG images).
+$("#imgCopy").addEventListener("click", async () => {
+  const req = imgRequest;
+  if (!req) return;
+  const stats = $("#imgStats").checked;
+  const makePng = async () => {
+    if (req.months.length > 1) await loadAllSessions();
+    const canvas = await animalCanvas(req.months, stats);
+    return new Promise((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png"));
+  };
+  if (!navigator.clipboard || !window.ClipboardItem) return toast("Couldn't copy the image here, use Download instead.");
+  try {
+    try {
+      // Handing over the unfinished picture keeps Safari happy (it must start right on the tap).
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": makePng() })]);
+    } catch (e) {
+      if (e.name === "NotAllowedError") throw e;
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": await makePng() })]);
+    }
+    imgDlg.close();
+    toast("Image copied. Paste it anywhere: Discord, WhatsApp, email…");
+  } catch (err) {
+    console.error(err);
+    toast("Couldn't copy the image here, use Download instead.");
   }
 });
 
