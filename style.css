@@ -16,6 +16,9 @@
   --block: 16px;
   --block-week: 26px;
   --wkcol: 34px;
+  /* custom mouse pointers (computers only): grey arrow, blue arrow over things you can click */
+  --c-default: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M5 3.5 L5 24 Q5 25.6 6.4 24.8 L11 20.6 L14.6 28.2 Q15.2 29.4 16.4 28.8 L18.6 27.8 Q19.8 27.2 19.2 26 L15.6 18.6 L22.2 18.4 Q23.8 18.3 22.7 17.1 L6.7 2.6 Q5 1.3 5 3.5 Z' fill='%234a4a4a' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E") 5 3, default;
+  --c-pointer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M5 3.5 L5 24 Q5 25.6 6.4 24.8 L11 20.6 L14.6 28.2 Q15.2 29.4 16.4 28.8 L18.6 27.8 Q19.8 27.2 19.2 26 L15.6 18.6 L22.2 18.4 Q23.8 18.3 22.7 17.1 L6.7 2.6 Q5 1.3 5 3.5 Z' fill='%234a7fd6' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E") 5 3, pointer;
   --font: "Fredoka", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -31,6 +34,9 @@ body {
 }
 /* The app handles two- and three-finger taps itself, so no pinch-zoom here. */
 .app, .drawer { touch-action: pan-x pan-y; }
+html { cursor: var(--c-default); }
+a, summary, label[for], select { cursor: var(--c-pointer); }
+input:not([type]), input[type=text], input[type=email], input[type=password], input[type=number], textarea { cursor: text; }
 button { font-family: inherit; }
 /* No focus box after mouse/touch clicks; keep a clear ring for keyboard users. */
 button:focus:not(:focus-visible) { outline: none; }
@@ -43,7 +49,7 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
   font: inherit; font-size: 15px; font-weight: 500;
   padding: 8px 18px; border-radius: 999px;
   border: 1px solid var(--line); background: #fff; color: var(--text);
-  cursor: pointer; white-space: nowrap;
+  cursor: var(--c-pointer); white-space: nowrap;
 }
 .btn:hover { background: #f3f4f6; }
 .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
@@ -53,21 +59,21 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .btn.small { padding: 5px 14px; font-size: 14px; }
 .text-btn {
   font: inherit; font-size: 15px; font-weight: 600; color: var(--muted);
-  background: none; border: 0; padding: 6px 4px; cursor: pointer; white-space: nowrap;
+  background: none; border: 0; padding: 6px 4px; cursor: var(--c-pointer); white-space: nowrap;
 }
 .text-btn:hover { color: var(--text); }
 .text-btn.active { color: var(--blue); }
 .icon-btn {
   font: inherit; font-size: 26px; line-height: 1;
   width: 36px; height: 36px; border-radius: 50%;
-  border: 0; background: transparent; color: var(--muted); cursor: pointer;
+  border: 0; background: transparent; color: var(--muted); cursor: var(--c-pointer);
   display: inline-grid; place-items: center; flex: none;
 }
 .icon-btn:hover { background: #f1f3f4; }
 .arrow-btn {
   font: inherit; font-size: 26px; line-height: 1; font-weight: 500;
   width: 26px; height: 34px; border: 0; background: none; color: var(--muted);
-  cursor: pointer; flex: none; padding: 0;
+  cursor: var(--c-pointer); flex: none; padding: 0;
 }
 .arrow-btn:hover { color: var(--text); }
 .arrow-btn:disabled { opacity: .2; cursor: default; }
@@ -90,7 +96,7 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 }
 .signin-card h1 { margin: 0 0 8px; font-size: 28px; font-weight: 500; }
 .signin-card p { color: var(--muted); margin: 0 0 20px; }
-.why-link { display: block; margin: 12px auto 0; background: none; border: 0; padding: 4px 8px; cursor: pointer;
+.why-link { display: block; margin: 12px auto 0; background: none; border: 0; padding: 4px 8px; cursor: var(--c-pointer);
   font-size: 14px; color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
 .why-link:hover { color: #2f63b8; }
 
@@ -133,7 +139,7 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .bw-bar { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--side); border-bottom: 1px solid var(--line); }
 .bw-dots { display: flex; gap: 7px; flex: none; }
 .bw-dot { display: block; width: 13px; height: 13px; border-radius: 50%; border: 0; padding: 0; }
-.bw-dots .bw-dot:nth-child(1) { background: #ff9e9e; cursor: pointer; }
+.bw-dots .bw-dot:nth-child(1) { background: #ff9e9e; cursor: var(--c-pointer); }
 .bw-dots .bw-dot:nth-child(2) { background: #ffd59e; }
 .bw-dots .bw-dot:nth-child(3) { background: #aef59a; }
 .bw-close:hover { filter: brightness(.9); }
@@ -186,7 +192,7 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 }
 .view-toggle { display: flex; gap: 6px; margin-right: 6px; }
 .avatar {
-  width: 34px; height: 34px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; flex: none;
+  width: 34px; height: 34px; border-radius: 50%; border: 0; padding: 0; cursor: var(--c-pointer); flex: none;
   background: #7aa7f0 center / cover no-repeat; color: #fff; font-weight: 600; font-size: 15px;
 }
 
@@ -205,12 +211,12 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .dots::-webkit-scrollbar { display: none; }
 .dot {
   width: var(--dot); height: var(--dot); border-radius: 50%; border: 0; padding: 0; flex: none;
-  cursor: grab; transition: transform .15s ease;
+  cursor: var(--c-pointer); transition: transform .15s ease;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.05);
 }
 @media (hover: hover) { .dot:hover { transform: scale(1.12); } }
 .add-dot {
-  background: #fff; color: var(--muted); cursor: pointer;
+  background: #fff; color: var(--muted); cursor: var(--c-pointer);
   box-shadow: inset 0 0 0 2px var(--line);
   display: grid; place-items: center;
 }
@@ -273,7 +279,7 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .blocks.more-above { -webkit-mask-image: linear-gradient(to top, #000 calc(100% - 16px), transparent); mask-image: linear-gradient(to top, #000 calc(100% - 16px), transparent); }
 .blocks.more-above.more-below { -webkit-mask-image: linear-gradient(to bottom, transparent, #000 16px, #000 calc(100% - 16px), transparent); mask-image: linear-gradient(to bottom, transparent, #000 16px, #000 calc(100% - 16px), transparent); }
 .block {
-  width: var(--block); height: var(--block); border-radius: 50%; flex: none; cursor: grab;
+  width: var(--block); height: var(--block); border-radius: 50%; flex: none; cursor: var(--c-pointer);
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
 }
 @media (hover: hover) { .block { transition: transform .12s ease; } .block:hover { transform: scale(1.2); } }
@@ -352,7 +358,7 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 }
 .ghost.lifted { box-shadow: 0 14px 28px rgba(0,0,0,.28), 0 4px 8px rgba(0,0,0,.15); }
 .puff { position: fixed; left: 0; top: 0; width: 9px; height: 9px; border-radius: 50%; pointer-events: none; z-index: 999; }
-body.dragging, body.dragging * { cursor: grabbing !important; }
+body.dragging, body.dragging * { cursor: var(--c-drag, grabbing) !important; }
 
 /* ---------- side menu ---------- */
 .scrim { position: fixed; inset: 0; background: rgba(32,33,36,.35); opacity: 0; pointer-events: none; transition: opacity .25s ease; z-index: 600; }
@@ -374,7 +380,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .activity-list .empty { color: var(--muted); font-size: 14px; padding: 8px 4px; }
 .activity {
   display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px;
-  align-items: center; padding: 8px 10px; border-radius: 12px; cursor: grab;
+  align-items: center; padding: 8px 10px; border-radius: 12px; cursor: var(--c-pointer);
 }
 .activity:hover { background: #eef1f6; }
 .activity .swatch { grid-row: 1 / 3; width: 26px; height: 26px; border-radius: 50%; }
@@ -388,8 +394,8 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 #backupBody { margin-top: 6px; }
 .backup-btn { width: 100%; padding: 10px 16px; margin-bottom: 6px; text-align: left; }
 .restore-info { margin: -6px 0 14px; color: var(--muted); font-size: 15px; }
-.check-row { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); cursor: pointer; margin: 0 0 14px; }
-.check-row input { width: 17px; height: 17px; margin: 0; accent-color: var(--blue); cursor: pointer; }
+.check-row { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); cursor: var(--c-pointer); margin: 0 0 14px; }
+.check-row input { width: 17px; height: 17px; margin: 0; accent-color: var(--blue); cursor: var(--c-pointer); }
 .btn.danger-fill { background: var(--red); border-color: var(--red); color: #fff; }
 .btn.danger-fill:hover { background: #c5281e; }
 #activityDialog .trash-btn { margin-left: -6px; }
@@ -409,17 +415,17 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
   background: #fff; color: var(--text); font: inherit; font-size: 15px; }
 .len-grid input:focus { outline: 2px solid var(--blue); outline-offset: 1px; border-color: transparent; }
 .len-grid input.bad { border-color: var(--red); }
-.link-btn { background: none; border: 0; padding: 4px 0; color: var(--blue); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px; font-size: 14px; cursor: pointer; }
+.link-btn { background: none; border: 0; padding: 4px 0; color: var(--blue); font: inherit; font-size: 13px; cursor: var(--c-pointer); text-decoration: underline; text-underline-offset: 3px; }
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px; font-size: 14px; cursor: var(--c-pointer); }
 .switch { appearance: none; -webkit-appearance: none; flex: none; position: relative; width: 38px; height: 22px; margin: 0;
-  border-radius: 999px; background: #c9ccd1; cursor: pointer; transition: background .2s ease; }
+  border-radius: 999px; background: #c9ccd1; cursor: var(--c-pointer); transition: background .2s ease; }
 .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%;
   background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .2s ease; }
 .switch:checked { background: var(--blue); }
 .switch:checked::after { transform: translateX(16px); }
 .switch:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .restore-opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; margin-bottom: 8px;
-  border: 1px solid var(--line); border-radius: 14px; cursor: pointer; font-size: 14px; color: var(--muted); }
+  border: 1px solid var(--line); border-radius: 14px; cursor: var(--c-pointer); font-size: 14px; color: var(--muted); }
 .restore-opt b { color: var(--text); font-size: 15px; font-weight: 600; }
 .restore-opt input { margin-top: 3px; accent-color: var(--blue); }
 .restore-opt:has(input:checked) { border-color: var(--blue); background: #f2f6fd; }
@@ -430,7 +436,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .gallery-toggle {
   width: 100%; display: flex; align-items: center; justify-content: space-between;
   font: inherit; font-size: 15px; font-weight: 600; color: var(--text);
-  background: none; border: 0; padding: 6px 4px; cursor: pointer; border-radius: 10px;
+  background: none; border: 0; padding: 6px 4px; cursor: var(--c-pointer); border-radius: 10px;
 }
 .gallery-toggle:hover { background: #eef1f6; }
 .gallery-toggle .chev { font-size: 22px; line-height: 1; color: var(--muted); transition: transform .2s ease; }
@@ -438,7 +444,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .gallery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; animation: pop-in .18s ease-out; }
 .gallery-card {
   font: inherit; background: #fff; border: 1px solid var(--line); border-radius: 14px;
-  padding: 8px 6px 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 6px 6px; cursor: var(--c-pointer); display: flex; flex-direction: column; align-items: center; gap: 4px;
   transition: transform .12s ease, box-shadow .12s ease;
 }
 .gallery-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.08); }
@@ -482,7 +488,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .pop-actions.spread { justify-content: space-between; align-items: center; gap: 8px; }
 .trash-btn {
   width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%;
-  background: none; color: var(--muted); cursor: pointer;
+  background: none; color: var(--muted); cursor: var(--c-pointer);
 }
 .trash-btn:hover { background: #fce8e6; color: var(--red); }
 .trash-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -515,11 +521,11 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 }
 .field input:focus { outline: 2px solid var(--blue); outline-offset: -1px; border-color: transparent; }
 .color-row { display: flex; align-items: center; gap: 10px; }
-.color-row input[type=color] { width: 48px; height: 36px; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: none; cursor: pointer; }
+.color-row input[type=color] { width: 48px; height: 36px; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: none; cursor: var(--c-pointer); }
 .color-preview { display: flex; gap: 8px; margin-top: 12px; }
 .color-preview button {
   font: inherit; font-size: 12px; color: var(--muted); text-align: center;
-  background: none; border: 0; padding: 2px 4px; cursor: pointer;
+  background: none; border: 0; padding: 2px 4px; cursor: var(--c-pointer);
 }
 .color-preview i {
   display: block; width: 30px; height: 30px; border-radius: 50%; margin: 0 auto 5px;
@@ -544,7 +550,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .toast.sticky { position: fixed; overflow: visible; }
 .toast-close { position: absolute; top: -9px; right: -6px; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%;
   background: var(--side); color: var(--muted); box-shadow: 0 0 0 1px var(--line), 0 2px 6px rgba(0,0,0,.12);
-  font-size: 16px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+  font-size: 16px; line-height: 1; cursor: var(--c-pointer); display: grid; place-items: center; }
 .toast-close:hover { color: var(--text); background: #eef1f6; }
 .toast-close::after { content: ""; position: absolute; inset: -10px; }   /* bigger tap area for fingers */
 .toast[popover] { inset: auto; margin: 0; border: 0; left: 50%; right: auto; top: auto; bottom: calc(24px + env(safe-area-inset-bottom)); overflow: visible; }
@@ -606,6 +612,6 @@ html { background: #fff; }
 .img-back { position: absolute; left: -6px; top: 50%; transform: translateY(-50%); }
 .img-back svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 /* tap the calendar animal to shuffle its dots */
-.fish.tappable { pointer-events: auto; cursor: pointer; }
+.fish.tappable { pointer-events: auto; cursor: var(--c-pointer); }
 .fish circle.shuffle { animation: dot-shuffle .35s cubic-bezier(.3,1.6,.5,1) backwards; }
 @keyframes dot-shuffle { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }

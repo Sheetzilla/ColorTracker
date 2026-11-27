@@ -10,8 +10,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=24";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=24";
+import { firebaseConfig } from "./firebase-config.js?v=26";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=26";
 
 /* =========================================================
    Firebase
@@ -1856,6 +1856,13 @@ function dragColor() {
   return a ? shade(a.color, s.minutes) : "#ccc";
 }
 
+// Mouse pointer while dragging: the grey arrow with a dot in the dragged activity's colour.
+function dragCursor(color) {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'>` +
+    `<path d='M5 3.5 L5 24 Q5 25.6 6.4 24.8 L11 20.6 L14.6 28.2 Q15.2 29.4 16.4 28.8 L18.6 27.8 Q19.8 27.2 19.2 26 L15.6 18.6 L22.2 18.4 Q23.8 18.3 22.7 17.1 L6.7 2.6 Q5 1.3 5 3.5 Z' fill='#4a4a4a' stroke='#fff' stroke-width='2' stroke-linejoin='round'/>` +
+    `<circle cx='24.5' cy='25.5' r='5' fill='${color}' stroke='#fff' stroke-width='1.8'/></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 5 3, grabbing`;
+}
 const ghostTransform = (d) => `translate(${d.gx}px, ${d.gy}px) rotate(${d.rot}deg) scale(${d.scale})`;
 
 function beginDrag() {
@@ -1879,6 +1886,7 @@ function beginDrag() {
   void g.offsetWidth;          // apply the start state before animating
   g.classList.add("lifted");   // lifts with a big soft shadow
 
+  document.body.style.setProperty("--c-drag", dragCursor(dragColor()));
   document.body.classList.add("dragging");
   document.body.style.setProperty("--drag-color", dragBaseColor());
   if (drag.kind === "session") drag.el.classList.add("picked");
@@ -1989,6 +1997,7 @@ function takeDrag() {
   cancelAnimationFrame(d.raf);
   if (d.target) d.target.classList.remove("drop-target");
   document.body.classList.remove("dragging");
+  document.body.style.removeProperty("--c-drag");
   return d;
 }
 
