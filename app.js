@@ -10,8 +10,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=34";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=34";
+import { firebaseConfig } from "./firebase-config.js?v=39";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=39";
 
 /* =========================================================
    Firebase
@@ -970,7 +970,15 @@ function calendarShell(rows, headCells) {
   const wrap = el("div", "cal");
   wrap.style.setProperty("--rows", rows);
   const head = el("div", "cal-head");
-  head.append(el("div", "wk-lbl", "Week"), ...headCells);
+  const lbl = el("div", "wk-lbl");
+  const tog = el("button", "wk-toggle");
+  tog.type = "button";
+  tog.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+  const hidden = $("#calendar").classList.contains("no-wk");
+  tog.setAttribute("aria-label", hidden ? "Show week numbers" : "Hide week numbers");
+  tog.setAttribute("aria-expanded", String(!hidden));
+  lbl.append(el("span", "wk-word", "Week"), tog);
+  head.append(lbl, ...headCells);
   const body = el("div", "cal-body");
   const wknos = el("div", "wknos");
   const box = el("div", "box");
@@ -1683,11 +1691,13 @@ function endSwipe(s, commit) {
 }
 
 $("#calendar").addEventListener("pointerdown", (e) => {
-  if (e.pointerType !== "touch" || !swipeOn() || swipeBusy) return;
+  const mouse = e.pointerType === "mouse";   // computers: click and drag sideways, like a finger swipe
+  if ((e.pointerType !== "touch" && !mouse) || (mouse && e.button !== 0) || !swipeOn() || swipeBusy) return;
+  if (mouse && e.target.closest("button, a, input")) return;
   if (swipe) { if (swipe.tracking) endSwipe(swipe, false); swipe = null; return; }   // a second finger: not a swipe
   if (!e.isPrimary || e.target.closest("[data-drag]")) return;   // squares are for dragging / flicking
   swipe = { id: e.pointerId, x: e.clientX, y: e.clientY, tracking: false, dir: 0, preview: null,
-            lastX: e.clientX, lastT: e.timeStamp, vx: 0 };
+            lastX: e.clientX, lastT: e.timeStamp, vx: 0, mouse };
 });
 
 $("#calendar").addEventListener("pointermove", (e) => {
@@ -1703,6 +1713,10 @@ $("#calendar").addEventListener("pointermove", (e) => {
     if (!s.cur) { swipe = null; return; }
     s.tracking = true;
     s.w = cal.clientWidth;
+    if (s.mouse) {   // keep following the mouse even if it leaves the calendar
+      try { cal.setPointerCapture(s.id); } catch { /* ignore */ }
+      document.body.classList.add("mouse-swiping");
+    }
     closePopover();
   }
   const dir = dx < 0 ? 1 : -1;   // finger to the left = next
@@ -1717,6 +1731,7 @@ $("#calendar").addEventListener("pointerup", (e) => {
   const s = swipe;
   if (!s || e.pointerId !== s.id) return;
   swipe = null;
+  document.body.classList.remove("mouse-swiping");
   if (!s.tracking) return;
   const dx = e.clientX - s.x;
   const far = Math.abs(dx) > SWIPE_COMMIT * s.w;
@@ -1724,15 +1739,61 @@ $("#calendar").addEventListener("pointerup", (e) => {
   endSwipe(s, (far || flick) && !document.querySelector("dialog[open]"));
 });
 
-/* ---------- Phone: double-tap the left quarter of the calendar to hide / show week numbers ---------- */
+/* ---------- Week numbers: the arrow above them hides / shows them (phones: double-tapping them works too) ---------- */
 const HIDE_WK_KEY = "ct-hide-weeknos";
 const isPhone = () => window.matchMedia("(pointer: coarse)").matches;
 function applyWeekNos() {
   let hide = false;
-  try { hide = isPhone() && localStorage.getItem(HIDE_WK_KEY) === "1"; } catch { /* ignore */ }
+  try { hide = localStorage.getItem(HIDE_WK_KEY) === "1"; } catch { /* ignore */ }
   $("#calendar").classList.toggle("no-wk", hide);
 }
 applyWeekNos();
+
+// The numbers slide up into the arrow (hide) or back down out of it (show).
+const WK_MS = 260;
+let wkBusy = false;
+function wkAnimTargets() {
+  let tog = $("#calendar .wk-toggle");
+  if (tog && !tog.offsetWidth) tog = $("#calendar .wk-lbl");   // phones have no arrow: fly into the "Week" label
+  if (!tog) return null;
+  const t = tog.getBoundingClientRect();
+  const ty = t.top + t.height / 2, tx = t.left + t.width / 2;
+  return [...document.querySelectorAll("#calendar .cal .wkno")].filter((n) => n.textContent).map((n) => {
+    const r = n.getBoundingClientRect();
+    return { n, dx: tx - (r.left + r.width / 2), dy: ty - (r.top + r.height / 2) };
+  });
+}
+function toggleWeekNos() {
+  if (wkBusy) return;
+  const hide = !$("#calendar").classList.contains("no-wk");
+  try { localStorage.setItem(HIDE_WK_KEY, hide ? "1" : "0"); } catch { /* ignore */ }
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const finish = () => {
+    applyWeekNos();
+    renderCalendar();   // rows / animal re-fit to the new width
+    if (!hide && !reduce) {
+      $("#calendar .wk-toggle svg")?.animate([{ transform: "rotate(-90deg)" }, { transform: "none" }], { duration: WK_MS, easing: "ease" });
+      for (const { n, dx, dy } of wkAnimTargets() || []) {
+        n.animate([{ transform: `translate(${dx}px, ${dy}px) scale(.3)`, opacity: 0 }, { transform: "none", opacity: 1 }],
+          { duration: WK_MS, easing: "cubic-bezier(.2,.8,.3,1)" });
+      }
+    }
+  };
+  if (!hide || reduce) return finish();
+  wkBusy = true;
+  const items = wkAnimTargets() || [];
+  const tog = $("#calendar .wk-toggle");
+  if (tog) tog.classList.add("turning");
+  for (const { n, dx, dy } of items) {
+    n.animate([{ transform: "none", opacity: 1 }, { transform: `translate(${dx}px, ${dy}px) scale(.3)`, opacity: 0 }],
+      { duration: WK_MS, easing: "cubic-bezier(.5,0,.8,.4)", fill: "forwards" });
+  }
+  $("#calendar .wk-word")?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: WK_MS * 0.6, fill: "forwards" });
+  setTimeout(() => { wkBusy = false; finish(); }, WK_MS);
+}
+$("#calendar").addEventListener("click", (e) => {
+  if (e.target.closest(".wk-toggle")) toggleWeekNos();
+});
 
 let tapStart = null, lastTap = null;
 $("#calendar").addEventListener("pointerdown", (e) => {
@@ -1744,14 +1805,10 @@ $("#calendar").addEventListener("pointerup", (e) => {
   if (!s || e.pointerType !== "touch" || !isPhone()) return;
   if (e.timeStamp - s.t > 300 || Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) { lastTap = null; return; }   // not a tap
   if (e.target.closest("[data-drag], button, a, input") || (multi && multi.max > 1)) { lastTap = null; return; }
-  const r = $("#calendar").getBoundingClientRect();
-  if (e.clientX > r.left + r.width / 4) { lastTap = null; return; }   // only the left quarter
+  if (!e.target.closest(".wknos, .wk-lbl")) { lastTap = null; return; }   // only the week column
   if (lastTap && e.timeStamp - lastTap.t < 350 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40) {
     lastTap = null;
-    const hide = !$("#calendar").classList.contains("no-wk");
-    try { localStorage.setItem(HIDE_WK_KEY, hide ? "1" : "0"); } catch { /* ignore */ }
-    applyWeekNos();
-    renderCalendar();   // rows/animal re-fit to the new width
+    toggleWeekNos();
     return;
   }
   lastTap = { x: e.clientX, y: e.clientY, t: e.timeStamp };
@@ -1761,6 +1818,7 @@ $("#calendar").addEventListener("pointercancel", (e) => {
   const s = swipe;
   if (!s || e.pointerId !== s.id) return;
   swipe = null;
+  document.body.classList.remove("mouse-swiping");
   if (s.tracking) endSwipe(s, false);
 });
 

@@ -232,9 +232,24 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .calendar { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 8px 8px;
   touch-action: pan-y; }   /* sideways finger moves stay with the app (for swiping months/weeks) */
 .calendar .blocks { touch-action: pan-y; }   /* busy days scroll on their own, so they need it too */
-/* phone: week numbers hidden (double-tap the left side) */
-.calendar.no-wk { --wkcol: 4px; }
-.calendar.no-wk .wk-lbl, .calendar.no-wk .wknos { visibility: hidden; overflow: hidden; }
+/* week numbers hidden with the arrow: only the arrow is left, pointing right */
+.calendar.no-wk { --wkcol: 24px !important; }
+.calendar.no-wk .wk-word, .calendar.no-wk .wkno { visibility: hidden; }
+.calendar.no-wk .wknos { overflow: hidden; }   /* the empty strip stays, so phones can double-tap it to bring the numbers back */
+/* "Week" sits on the weekday row; on computers the arrow hangs just under it, above the first week number */
+.wk-lbl { position: relative; min-width: 0; }
+.wk-toggle { position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%); z-index: 1;
+  width: 24px; height: 22px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--muted);
+  display: grid; place-items: center; cursor: var(--c-pointer); }
+/* phones and tablets: no arrow, double-tap the week column instead */
+@media (hover: none), (pointer: coarse) { .wk-toggle { display: none; } }
+.wk-toggle:hover { background: #f1f3f4; color: var(--text); }
+.wk-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+  transition: transform .26s ease; }
+.calendar.no-wk .wk-toggle svg, .wk-toggle.turning svg { transform: rotate(-90deg); }
+/* the calendar's text isn't meant for selecting (mouse drags change the month) */
+.calendar { user-select: none; -webkit-user-select: none; }
+body.mouse-swiping, body.mouse-swiping * { cursor: var(--c-pointer) !important; }
 /* swiping: the next month/week is laid next to the current one and slides in */
 .calendar { position: relative; overflow-x: clip; }
 .cal { flex: none; display: flex; flex-direction: column; }
@@ -247,7 +262,7 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
   grid-template-rows: repeat(var(--rows), var(--rowh, 90px));
 }
 .wknos { grid-column: 1; grid-row: 1 / -1; display: grid; grid-template-rows: subgrid; }
-.wkno { text-align: center; font-size: 14px; color: var(--wkno); padding-top: 8px; }
+.wkno { display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--wkno); }   /* in the middle of its week */
 .box {
   grid-column: 2; grid-row: 1 / -1; min-width: 0; display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
