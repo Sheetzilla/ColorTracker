@@ -10,8 +10,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=33";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=33";
+import { firebaseConfig } from "./firebase-config.js?v=34";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=34";
 
 /* =========================================================
    Firebase
@@ -419,8 +419,12 @@ async function deleteAllData(uid) {
   }
 }
 
+// Only a real tap/click on "Delete everything" may delete. Cancel just closes, and Enter does nothing.
+$("#dangerCancel").addEventListener("click", () => dangerDlg.close());
+$("#dangerPass").addEventListener("keydown", (e) => { if (e.key === "Enter") e.preventDefault(); });
 $("#dangerForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (e.submitter !== $("#dangerGo")) return;
   const err = $("#dangerError"), go = $("#dangerGo");
   err.textContent = "";
   const u = auth.currentUser;

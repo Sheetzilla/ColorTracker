@@ -5,6 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
   <title>ColorTracker</title>
+  <meta name="description" content="Log your sessions and watch your month fill with colour.">
+  <!-- Link previews (Discord, WhatsApp, LinkedIn…). The picture needs the full web address. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="ColorTracker">
+  <meta property="og:title" content="ColorTracker">
+  <meta property="og:description" content="Log your sessions and watch your month fill with colour.">
+  <meta property="og:url" content="https://sheetzilla.github.io/ColorTracker/">
+  <meta property="og:image" content="https://sheetzilla.github.io/ColorTracker/icons/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="ColorTracker: a fish made of coloured dots">
+  <meta name="twitter:card" content="summary_large_image">
   <!-- Installable app -->
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -18,7 +30,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- ?v= is the app version: raised with every update (also in app.js imports and sw.js),
        so the browser always loads files that belong together. -->
-  <link rel="stylesheet" href="style.css?v=33">
+  <link rel="stylesheet" href="style.css?v=34">
 </head>
 <body>
   <div id="loading" class="loading">Loading…</div>
@@ -265,7 +277,7 @@
       <p id="dangerError" class="error" role="status"></p>
       <div class="dialog-actions">
         <span class="spacer"></span>
-        <button class="btn" value="cancel">Cancel</button>
+        <button id="dangerCancel" class="btn" type="button">Cancel</button>
         <button id="dangerGo" class="btn danger-fill" type="submit">Delete everything</button>
       </div>
     </form>
@@ -336,6 +348,6 @@
 
   <div id="toast" class="toast hidden" popover="manual" role="status"></div>
 
-  <script type="module" src="app.js?v=33"></script>
+  <script type="module" src="app.js?v=34"></script>
 </body>
 </html>
