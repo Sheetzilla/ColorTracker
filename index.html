@@ -18,7 +18,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- ?v= is the app version: raised with every update (also in app.js imports and sw.js),
        so the browser always loads files that belong together. -->
-  <link rel="stylesheet" href="style.css?v=19">
+  <link rel="stylesheet" href="style.css?v=20">
 </head>
 <body>
   <div id="loading" class="loading">Loading…</div>
@@ -59,6 +59,7 @@
         <li>Your data can only be reached from <b>this browser on this device</b>.</li>
         <li>It <b>won't sync</b> to your phone or other devices.</li>
         <li>Clearing your browser data, uninstalling the app or switching browsers <b>erases it for good</b>.</li>
+        <li>Guest accounts are <b>deleted automatically after 30 days</b>. Create an account before then to keep your data.</li>
       </ul>
       <p class="hint">You can create an account later from the button in the top right corner and keep everything you've logged.</p>
       <div class="dialog-actions">
@@ -111,6 +112,7 @@
           <li>Your data can only be reached from <b>this browser on this device</b>.</li>
           <li>It <b>won't sync</b> to your phone or other devices.</li>
           <li>Clearing your browser data, uninstalling the app or switching browsers <b>erases it for good</b>.</li>
+          <li>Guest accounts are <b>deleted automatically after 30 days</b>. Create an account before then to keep your data.</li>
         </ul>
         <p>You can create an account later from the button in the top right corner and keep everything you've logged.</p>
         <h4><i style="background:#d9b4ff"></i>On your device</h4>
@@ -330,6 +332,6 @@
 
   <div id="toast" class="toast hidden" popover="manual" role="status"></div>
 
-  <script type="module" src="app.js?v=19"></script>
+  <script type="module" src="app.js?v=20"></script>
 </body>
 </html>

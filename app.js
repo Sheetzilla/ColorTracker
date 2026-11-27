@@ -10,8 +10,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=19";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=19";
+import { firebaseConfig } from "./firebase-config.js?v=20";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=20";
 
 /* =========================================================
    Firebase
@@ -455,6 +455,13 @@ $("#dangerForm").addEventListener("submit", async (e) => {
   }
 });
 dangerDlg.addEventListener("click", (e) => { if (e.target === e.currentTarget) dangerDlg.close(); });
+
+// Firebase auto clean-up deletes guest accounts 30 days after they were created.
+function guestDaysLeft() {
+  const created = Date.parse(state.user?.metadata?.creationTime || "");
+  if (!created) return null;
+  return Math.ceil((created + 30 * 864e5 - Date.now()) / 864e5);
+}
 
 // Profile details can sit on the linked provider when a guest upgraded.
 const userEmail = (u) => u.email || u.providerData.find((p) => p.email)?.email || "";
@@ -2228,11 +2235,17 @@ function renderPopover() {
       const trash = `<button class="trash-btn" data-act="danger" aria-label="Delete user and all data"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg></button>`;
       if (isGuest()) {
         popEl.innerHTML = `<p class="pop-email pop-guest">User not logged in</p>` +
-          `<p class="pop-note">Your data is saved on this device only and doesn't sync.</p>` +
+          `<p class="pop-note">Your data is saved on this device only and doesn't sync. <b class="pop-days"></b></p>` +
           `<div class="pop-acct"><button class="btn primary" data-act="login">Log in</button>${trash}</div>` + privacy;
       } else {
         popEl.innerHTML = `<p class="pop-email"></p><div class="pop-acct"><button class="btn" data-act="signout">Sign out</button>${trash}</div>` + privacy;
         popEl.querySelector(".pop-email").textContent = state.user ? userEmail(state.user) : "";
+      }
+      const daysEl = popEl.querySelector(".pop-days");
+      if (daysEl) {
+        const left = guestDaysLeft();
+        daysEl.textContent = left === null ? "" : left <= 0 ? "Deleted today." : left === 1 ? "Deleted in 1 day." : `Deleted in ${left} days.`;
+        daysEl.classList.toggle("urgent", left !== null && left <= 3);
       }
       popEl.dataset.built = "user";
     }

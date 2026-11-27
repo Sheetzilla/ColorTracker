@@ -489,6 +489,8 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .pop-email { color: var(--muted); font-size: 14px; margin: 0 0 12px; word-break: break-all; }
 .pop-privacy { margin: 10px 0 0; padding: 4px 0; font-size: 13px; }
 .pop-guest { color: var(--text); font-weight: 500; margin-bottom: 4px; }
+.pop-days { font-weight: 500; color: var(--text); }
+.pop-days.urgent { color: var(--red); }
 .pop-acct { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .danger-title { color: var(--red); }
 #dangerTitle:focus { outline: none; }
