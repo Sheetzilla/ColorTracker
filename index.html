@@ -18,22 +18,70 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- ?v= is the app version: raised with every update (also in app.js imports and sw.js),
        so the browser always loads files that belong together. -->
-  <link rel="stylesheet" href="style.css?v=17">
+  <link rel="stylesheet" href="style.css?v=19">
 </head>
 <body>
   <div id="loading" class="loading">Loading…</div>
 
-  <!-- Sign-in screen -->
+  <!-- Sign-in screen (also opens on top of the app when a guest taps Log in) -->
   <div id="signin" class="signin hidden">
     <div class="signin-card">
+      <button id="signinClose" class="icon-btn signin-close hidden" type="button" aria-label="Back to the app">×</button>
       <div class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
       <h1>ColorTracker</h1>
       <p>Log your sessions and watch your month fill with colour.</p>
-      <button id="signinBtn" class="btn primary">Sign in with Google</button>
-      <button id="whyBtn" class="why-link" type="button">Why is this needed?</button>
-      <p id="signinError" class="error"></p>
+      <form id="emailForm" class="email-form" novalidate>
+        <!-- Opens only after Create account or Log in is tapped -->
+        <div id="emailFields" class="email-fields" inert>
+          <div class="email-fields-inner">
+            <input id="emailInput" type="email" placeholder="Email" autocomplete="email" aria-label="Email">
+            <input id="passInput" type="password" placeholder="Password (at least 6 characters)" autocomplete="new-password" aria-label="Password">
+          </div>
+        </div>
+        <button id="emailBtn" type="submit" class="btn primary wide">Create account</button>
+      </form>
+      <button id="loginOpenBtn" class="btn wide login-open" type="button">Log in</button>
+      <button id="forgotBtn" class="link-btn forgot-btn hidden" type="button">Forgot password?</button>
+      <p id="modeRow" class="mode-row hidden"><span id="modeText">Already have an account?</span> <button id="modeBtn" class="link-btn mode-btn" type="button">Log in</button></p>
+      <div class="or" aria-hidden="true"><span>or</span></div>
+      <button id="signinBtn" class="btn wide" type="button">Continue with Google</button>
+      <button id="guestBtn" class="btn wide guest-btn" type="button">Try without an account</button>
+      <button id="whyBtn" class="why-link" type="button">Why log in?</button>
+      <p id="signinError" class="error" role="status"></p>
     </div>
   </div>
+
+  <!-- Shown the first time someone taps "Try without an account" -->
+  <dialog id="guestDialog" class="dialog">
+    <form method="dialog">
+      <h3 id="guestTitle" tabindex="-1" autofocus>Use without an account?</h3>
+      <ul class="guest-list">
+        <li>Your data can only be reached from <b>this browser on this device</b>.</li>
+        <li>It <b>won't sync</b> to your phone or other devices.</li>
+        <li>Clearing your browser data, uninstalling the app or switching browsers <b>erases it for good</b>.</li>
+      </ul>
+      <p class="hint">You can create an account later from the button in the top right corner and keep everything you've logged.</p>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button class="btn" value="cancel">Back</button>
+        <button class="btn primary" value="ok">Continue as guest</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- A guest logs in to an account that already exists: guest data doesn't move over by itself -->
+  <dialog id="mergeDialog" class="dialog">
+    <form method="dialog">
+      <h3 id="mergeTitle" tabindex="-1" autofocus>Log in to an existing account?</h3>
+      <p class="hint">Your guest data won't move to that account by itself. To keep it, download a backup first. After logging in, open <b>☰ → Backup → Restore from backup</b> and choose <b>Merge</b>.</p>
+      <button id="mergeBackupBtn" class="btn backup-btn" type="button">⬇ Download backup</button>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button class="btn" value="cancel">Cancel</button>
+        <button class="btn primary" value="ok">Log in</button>
+      </div>
+    </form>
+  </dialog>
 
   <!-- "Why sign in" privacy info, drawn as a little browser window -->
   <dialog id="whyDialog" class="dialog browser-win" aria-labelledby="whyTitle">
@@ -48,19 +96,28 @@
       <div class="bw-stripe" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
       <div class="bw-scroll">
       <div class="bw-page">
-        <h3 id="whyTitle" tabindex="-1" autofocus>Why sign in with Google?</h3>
-        <p>Signing in is how ColorTracker knows which data is yours, so your activities and sessions sync between your phone and computer.</p>
-        <h4><i style="background:#ff9e9e"></i>What the app gets from Google</h4>
-        <p>Your name, email address and profile picture. Nothing else: it can't see your Gmail, contacts or files.</p>
+        <h3 id="whyTitle" tabindex="-1" autofocus>Why log in?</h3>
+        <p>Signing in is how ColorTracker knows which data is yours, so your activities and sessions sync between your phone and computer. You can use an email and password or your Google account.</p>
+        <h4><i style="background:#ff9e9e"></i>What the app gets</h4>
+        <p>With email: just your email address.</p>
+        <p>With Google: your name, email address and profile picture. Nothing else: it can't see your Gmail, contacts or files.</p>
         <h4><i style="background:#9ef7f2"></i>What's saved</h4>
         <p>Your activities and the sessions you log. They're stored in Google Firebase, locked to your account. Other users can't see them.</p>
         <p>The developer can technically access the database to fix problems, but doesn't look at or use your data.</p>
         <h4><i style="background:#aef59a"></i>What's never done</h4>
         <p>No ads, no tracking, and your data is never sold or shared.</p>
+        <h4><i style="background:#ffb8e0"></i>Without an account</h4>
+        <ul class="why-list">
+          <li>Your data can only be reached from <b>this browser on this device</b>.</li>
+          <li>It <b>won't sync</b> to your phone or other devices.</li>
+          <li>Clearing your browser data, uninstalling the app or switching browsers <b>erases it for good</b>.</li>
+        </ul>
+        <p>You can create an account later from the button in the top right corner and keep everything you've logged.</p>
         <h4><i style="background:#d9b4ff"></i>On your device</h4>
         <p>The app saves a few settings, like week or month view, plus a copy of your data so it works offline.</p>
         <h4><i style="background:#ffd59e"></i>Delete your data</h4>
-        <p>Email <a href="mailto:info@sleetsheet.com">info@sleetsheet.com</a> and it will be removed.</p>
+        <p>Tap your profile picture (or the × as a guest), then the trash bin. This deletes your user and all your data.</p>
+        <p class="why-contact">Email your questions or any feedback to <a href="mailto:info@sleetsheet.com">info@sleetsheet.com</a>.</p>
       </div>
       <div class="bw-sb hidden" aria-hidden="true"><i class="bw-thumb"></i></div>
       </div>
@@ -168,10 +225,11 @@
     </div>
     <div class="gesture-help">
       <h3 class="drawer-title">Gestures</h3>
-      <p>Hold a square and flick it away to delete it.</p>
-      <p>Two-finger tap: undo · Three-finger tap: redo<br>(Ctrl+Z / Ctrl+Y on a computer)</p>
-      <p>Swipe left / right on the calendar: next / previous month or week</p>
-      <p>Double-tap the left side of the calendar (phone): hide or show week numbers</p>
+      <p><b>Drag</b> an activity dot onto a day to log a session. You can also <b>drag</b> the dots in the list to reorder them.</p>
+      <p><b>Hold</b> a square and flick it away to delete it.</p>
+      <p><b>Two-finger tap:</b> undo · <b>Three-finger tap:</b> redo<br>(Ctrl+Z / Ctrl+Y on a computer)</p>
+      <p><b>Slide</b> left or right on the calendar to move between months (or weeks in week view).</p>
+      <p><b>Double-tap</b> the left side of the calendar to hide or show week numbers (mobile).</p>
     </div>
   </aside>
 
@@ -187,6 +245,25 @@
         <span class="spacer"></span>
         <button type="button" id="restoreCancel" class="btn">Cancel</button>
         <button type="button" id="restoreGo" class="btn primary">Restore</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Danger Zone: delete the user and all their data -->
+  <dialog id="dangerDialog" class="dialog">
+    <form id="dangerForm" method="dialog">
+      <h3 id="dangerTitle" class="danger-title" tabindex="-1" autofocus>Danger Zone</h3>
+      <p class="hint">Here you can delete your user and all your data: activities, sessions and settings.</p>
+      <p class="danger-warn">This can't be undone. Do you want to proceed?</p>
+      <label id="dangerPassRow" class="field hidden">
+        <span>Type your password to confirm</span>
+        <input id="dangerPass" type="password" autocomplete="current-password">
+      </label>
+      <p id="dangerError" class="error" role="status"></p>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button class="btn" value="cancel">Cancel</button>
+        <button id="dangerGo" class="btn danger-fill" type="submit">Delete everything</button>
       </div>
     </form>
   </dialog>
@@ -253,6 +330,6 @@
 
   <div id="toast" class="toast hidden" popover="manual" role="status"></div>
 
-  <script type="module" src="app.js?v=17"></script>
+  <script type="module" src="app.js?v=19"></script>
 </body>
 </html>

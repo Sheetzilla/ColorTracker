@@ -94,6 +94,39 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
   font-size: 14px; color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
 .why-link:hover { color: #2f63b8; }
 
+/* email + password, Google, guest */
+.signin { z-index: 40; overflow-y: auto; }
+.signin.over-app { background: rgba(248,250,253,.97); }
+.signin-card { position: relative; }
+.signin-close { position: absolute; top: 10px; right: 10px; font-size: 22px; }
+.email-form { display: flex; flex-direction: column; }
+/* email + password slide open */
+.email-fields { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .25s ease, opacity .2s ease; }
+.email-fields.open { grid-template-rows: 1fr; opacity: 1; }
+.email-fields-inner { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 10px; padding: 2px; margin: -2px; }
+.email-fields.open .email-fields-inner { padding-bottom: 12px; }
+.login-open { margin-top: 10px; }
+
+.email-form input {
+  width: 100%; font: inherit; font-size: 16px; padding: 10px 14px;
+  border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--text);
+}
+.email-form input:focus { outline: 2px solid var(--blue); outline-offset: -1px; border-color: transparent; }
+.btn.wide { display: block; width: 100%; padding: 10px 18px; }
+.btn:disabled { opacity: .6; cursor: default; }
+.forgot-btn { display: block; margin: 8px auto 0; }
+.or { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--faint); font-size: 13px; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.guest-btn { margin-top: 10px; color: var(--muted); }
+.signin-card .mode-row { margin: 10px 0 0; font-size: 14px; }
+.mode-btn { font-size: 14px; font-weight: 500; }
+.error.ok { color: #2e7d4f !important; }
+.guest-list { margin: 0 0 12px; padding-left: 20px; font-size: 15px; line-height: 1.45; }
+.guest-list li { margin-bottom: 6px; }
+#mergeDialog .hint, #guestDialog .hint { margin: 0 0 14px; }
+#mergeDialog .backup-btn { margin-bottom: 8px; }
+#guestTitle:focus, #mergeTitle:focus { outline: none; }
+
 /* "Why sign in" popup, looks like a tiny browser window */
 .dialog.browser-win { width: min(440px, calc(100vw - 24px)); max-height: calc(100vh - 40px); overflow: hidden; border-radius: 18px; animation: pop-in .2s cubic-bezier(.3,1.4,.6,1); }
 .dialog.browser-win form { padding: 0; display: flex; flex-direction: column; max-height: calc(100vh - 40px); }
@@ -119,6 +152,9 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .bw-page h4 i { width: 12px; height: 12px; border-radius: 50%; flex: none; }
 .bw-page p { margin: 0 0 8px; font-size: 14px; line-height: 1.45; color: var(--muted); }
 .bw-page a { color: var(--blue); }
+.why-list { margin: 0 0 8px; padding-left: 20px; font-size: 14px; line-height: 1.45; color: var(--muted); }
+.why-list li { margin-bottom: 4px; }
+.why-list b { color: var(--text); font-weight: 500; }
 .dialog .bw-actions { margin: 0; padding: 12px 22px 16px; background: var(--bg); border-top: 1px solid var(--line); flex: none; }
 .bw-scroll { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: var(--bg); }
 .bw-page { flex: 1 1 auto; min-height: 0; scrollbar-width: none; }
@@ -452,6 +488,17 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .trash-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .pop-email { color: var(--muted); font-size: 14px; margin: 0 0 12px; word-break: break-all; }
 .pop-privacy { margin: 10px 0 0; padding: 4px 0; font-size: 13px; }
+.pop-guest { color: var(--text); font-weight: 500; margin-bottom: 4px; }
+.pop-acct { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.danger-title { color: var(--red); }
+#dangerTitle:focus { outline: none; }
+#dangerDialog .hint { margin: 0 0 10px; }
+.danger-warn { margin: 0 0 14px; font-size: 15px; font-weight: 500; color: var(--red); }
+.why-contact { margin-top: 18px !important; padding-top: 12px; border-top: 1px solid var(--line); }
+.pop-note { color: var(--muted); font-size: 13px; margin: 0 0 12px; max-width: 220px; line-height: 1.35; }
+/* guest: an × instead of a profile picture */
+.avatar.guest { display: grid; place-items: center; background: #e6e8eb; color: var(--muted); }
+.avatar.guest svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
 
 /* ---------- dialog ---------- */
 .dialog { border: 0; border-radius: 22px; padding: 0; background: var(--side); width: min(400px, calc(100vw - 24px)); box-shadow: 0 12px 40px rgba(0,0,0,.25); font-family: var(--font); color: var(--text); }

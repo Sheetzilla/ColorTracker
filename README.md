@@ -1,6 +1,6 @@
 # ColorTracker
 
-A calendar-style progress tracker. Make colour-coded activities, drag them onto days, and longer sessions show up as deeper shades. Data syncs between your computer and phone through Firebase (Google sign-in).
+A calendar-style progress tracker. Make colour-coded activities, drag them onto days, and longer sessions show up as deeper shades. Data syncs between your computer and phone through Firebase. Sign in with email + password or Google, or try it without an account (data then stays in that browser only).
 
 ## Files
 
@@ -24,7 +24,14 @@ A calendar-style progress tracker. Make colour-coded activities, drag them onto 
 
 Without this step the app can sign you in but can't load or save anything.
 
-### 2. Put the site on GitHub Pages
+### 2. Turn on the sign-in methods
+1. Firebase console → **Authentication → Sign-in method**.
+2. Make sure **Google** is enabled, then **Add new provider** → **Email/Password** → enable the first switch (leave "Email link" off) → **Save**.
+3. **Add new provider** → **Anonymous** → enable → **Save**.
+
+Without this, the email and "Try without an account" buttons show "This sign-in method isn't turned on in Firebase yet."
+
+### 3. Put the site on GitHub Pages
 1. On GitHub, create a new **public** repository, e.g. `colortracker`.
 2. **Add file → Upload files** and drag in `index.html`, `style.css`, `app.js`, `firebase-config.js`, `manifest.webmanifest`, `sw.js` and the whole **`icons` folder** (the README and rules file can go in too).
 3. **Commit changes**.
@@ -33,12 +40,12 @@ Without this step the app can sign you in but can't load or save anything.
 
 `sheetzilla.github.io` must be listed under Firebase **Authentication → Settings → Authorized domains** (already done).
 
-### 3. Install it as an app
+### 4. Install it as an app
 - **Android (Chrome):** open the address, then **☰ menu → Install app** (or Chrome's ⋮ menu → *Install app*).
 - **iPhone (Safari):** open the address, tap **Share → Add to Home Screen**.
 - **Computer (Chrome/Edge):** click the install icon at the right end of the address bar.
 
-Sign in with the same Google account everywhere. The app opens full-screen from its own icon, works offline (changes sync when you're back online) and updates itself when you upload new files to GitHub. After an update, close and reopen the app once to get the new version.
+Sign in with the same account (email or Google) everywhere. Guests can tap the **×** button in the top right → **Log in** to create an account later and keep their data. The app opens full-screen from its own icon, works offline (changes sync when you're back online) and updates itself when you upload new files to GitHub. After an update, close and reopen the app once to get the new version.
 
 ## How to use
 

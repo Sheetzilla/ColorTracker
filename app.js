@@ -1,15 +1,17 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
-  onAuthStateChanged, signOut
+  getAuth, GoogleAuthProvider, EmailAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
+  onAuthStateChanged, signOut, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  sendPasswordResetEmail, linkWithCredential, linkWithPopup, linkWithRedirect, signInWithCredential,
+  deleteUser, reauthenticateWithCredential, reauthenticateWithPopup
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js";
 import {
   initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=17";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=17";
+import { firebaseConfig } from "./firebase-config.js?v=19";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=19";
 
 /* =========================================================
    Firebase
@@ -161,7 +163,7 @@ function autoColor(excludeId = null, current = null) {
 /* =========================================================
    Auth
    ========================================================= */
-getRedirectResult(auth).catch((e) => showSigninError(e));
+getRedirectResult(auth).catch((e) => handleGoogleError(e));
 
 onAuthStateChanged(auth, (user) => {
   $("#loading").classList.add("hidden");
@@ -179,10 +181,10 @@ onAuthStateChanged(auth, (user) => {
 
   if (!user) {
     $("#app").classList.add("hidden");
-    $("#signin").classList.remove("hidden");
+    showSignin(false);
     return;
   }
-  $("#signin").classList.add("hidden");
+  hideSignin();
   $("#app").classList.remove("hidden");
   setAvatar(user);
   showOfflineInfo();
@@ -210,34 +212,271 @@ $("#whyBtn").addEventListener("click", () => $("#whyDialog").showModal());
 })();
 $("#whyDialog").addEventListener("click", (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });   // tap outside closes
 
-$("#signinBtn").addEventListener("click", async () => {
-  $("#signinError").textContent = "";
-  const provider = new GoogleAuthProvider();
+/* ---------- Sign-in screen ---------- */
+// "closed" = first page (just the buttons), "signup" = create an account, "login" = an account that already exists.
+let authMode = "closed";
+const isGuest = () => !!(state.user && state.user.isAnonymous);
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const login = mode === "login", open = mode !== "closed";
+  const fields = $("#emailFields");
+  fields.classList.toggle("open", open);
+  fields.inert = !open;
+  $("#emailBtn").textContent = login ? "Log in" : "Create account";
+  $("#loginOpenBtn").classList.toggle("hidden", open);
+  $("#passInput").autocomplete = login ? "current-password" : "new-password";
+  $("#passInput").placeholder = login ? "Password" : "Password (at least 6 characters)";
+  $("#forgotBtn").classList.toggle("hidden", !login);
+  $("#modeRow").classList.toggle("hidden", !open);
+  $("#modeText").textContent = login ? "New here?" : "Already have an account?";
+  $("#modeBtn").textContent = login ? "Create account" : "Log in";
+  signinMsg("");
+  if (open) setTimeout(() => $("#emailInput").focus({ preventScroll: true }), 50);
+}
+
+// overApp = a guest opened it from the account button: the app stays behind it and × goes back.
+function showSignin(overApp) {
+  setAuthMode("closed");
+  $("#passInput").value = "";
+  $("#signin").classList.toggle("over-app", overApp);
+  $("#signinClose").classList.toggle("hidden", !overApp);
+  $("#guestBtn").classList.toggle("hidden", overApp);
+  $("#signin").classList.remove("hidden");
+}
+function hideSignin() {
+  $("#signin").classList.add("hidden");
+  signinMsg("");
+}
+
+function signinMsg(text, ok = false) {
+  const p = $("#signinError");
+  p.textContent = text;
+  p.classList.toggle("ok", ok);
+}
+
+function authErrorText(e) {
+  switch (e.code) {
+    case "auth/invalid-email": return "That email address doesn't look right.";
+    case "auth/missing-email": return "Write your email address first.";
+    case "auth/missing-password":
+    case "auth/weak-password": return "The password needs at least 6 characters.";
+    case "auth/email-already-in-use": return "That email already has an account.";
+    case "auth/invalid-credential":
+    case "auth/invalid-login-credentials":
+    case "auth/wrong-password":
+    case "auth/user-not-found": return "Wrong email or password.";
+    case "auth/too-many-requests": return "Too many tries. Wait a moment and try again.";
+    case "auth/network-request-failed": return "No internet connection.";
+    case "auth/operation-not-allowed":
+    case "auth/admin-restricted-operation": return "This sign-in method isn't turned on in Firebase yet.";
+    case "auth/unauthorized-domain": return "This web address isn't on Firebase's list of authorised domains yet.";
+    default: return `Sign-in failed (${e.code || e.message}).`;
+  }
+}
+const showSigninError = (e) => signinMsg(authErrorText(e));
+
+// Opens a dialog and resolves with the button's value ("ok" / "cancel").
+function ask(dialog) {
+  return new Promise((resolve) => {
+    dialog.returnValue = "cancel";
+    dialog.addEventListener("close", () => resolve(dialog.returnValue), { once: true });
+    dialog.showModal();
+  });
+}
+
+// A guest just got a real account: same user id, so all their data stays and now syncs.
+function afterUpgrade() {
+  state.user = auth.currentUser;
+  setAvatar(state.user);
+  hideSignin();
+  closePopover();
+  toast("Account ready! Your data is kept and now syncs.");
+}
+
+$("#modeBtn").addEventListener("click", () => setAuthMode(authMode === "login" ? "signup" : "login"));
+$("#loginOpenBtn").addEventListener("click", () => setAuthMode("login"));
+$("#signinClose").addEventListener("click", () => { if (state.user) hideSignin(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && isGuest() && !$("#signin").classList.contains("hidden") && !document.querySelector("dialog[open]")) hideSignin();
+});
+
+$("#emailForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  signinMsg("");
+  if (authMode === "closed") return setAuthMode("signup");   // first tap only opens the fields
+  const email = $("#emailInput").value.trim();
+  const pass = $("#passInput").value;
+  if (!email) return signinMsg("Write your email address first.");
+  if (!pass) return signinMsg(authMode === "signup" ? "Choose a password (at least 6 characters)." : "Write your password.");
+  const btn = $("#emailBtn");
+  btn.disabled = true;
   try {
-    await signInWithPopup(auth, provider);
+    if (authMode === "signup") {
+      if (isGuest()) {
+        await linkWithCredential(auth.currentUser, EmailAuthProvider.credential(email, pass));
+        afterUpgrade();
+      } else {
+        await createUserWithEmailAndPassword(auth, email, pass);
+      }
+    } else {
+      if (isGuest() && await ask($("#mergeDialog")) !== "ok") return;
+      await signInWithEmailAndPassword(auth, email, pass);
+    }
+  } catch (err) {
+    showSigninError(err);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$("#forgotBtn").addEventListener("click", async () => {
+  const email = $("#emailInput").value.trim();
+  if (!email) return signinMsg("Write your email address above, then tap Forgot password again.");
+  try {
+    await sendPasswordResetEmail(auth, email);
+    signinMsg("If that email has an account, a reset link is on its way. Check your spam folder too.", true);
+  } catch (err) {
+    showSigninError(err);
+  }
+});
+
+$("#guestBtn").addEventListener("click", async () => {
+  signinMsg("");
+  let warned = false;
+  try { warned = localStorage.getItem("ct-guest-warned") === "1"; } catch { /* ignore */ }
+  if (!warned) {
+    if (await ask($("#guestDialog")) !== "ok") return;
+    try { localStorage.setItem("ct-guest-warned", "1"); } catch { /* ignore */ }
+  }
+  try {
+    await signInAnonymously(auth);
+  } catch (err) {
+    showSigninError(err);
+  }
+});
+
+$("#mergeBackupBtn").addEventListener("click", () => $("#backupBtn").click());
+
+$("#signinBtn").addEventListener("click", async () => {
+  signinMsg("");
+  const provider = new GoogleAuthProvider();
+  const guest = isGuest();
+  try {
+    if (guest) {
+      await linkWithPopup(auth.currentUser, provider);
+      afterUpgrade();
+    } else {
+      await signInWithPopup(auth, provider);
+    }
   } catch (e) {
     if (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment") {
-      await signInWithRedirect(auth, provider);
-    } else if (e.code !== "auth/popup-closed-by-user" && e.code !== "auth/cancelled-popup-request") {
-      showSigninError(e);
+      if (guest) await linkWithRedirect(auth.currentUser, provider);
+      else await signInWithRedirect(auth, provider);
+    } else {
+      handleGoogleError(e);
     }
   }
 });
 
-function showSigninError(e) {
-  $("#signinError").textContent = e.code === "auth/unauthorized-domain"
-    ? "This web address isn't on Firebase's list of authorised domains yet."
-    : `Sign-in failed (${e.code || e.message}).`;
+// That Google account already exists: ask before leaving the guest data behind, then log in to it.
+async function handleGoogleError(e) {
+  if (e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request") return;
+  if (e.code === "auth/credential-already-in-use") {
+    const cred = GoogleAuthProvider.credentialFromError(e);
+    if (!cred) return showSigninError(e);
+    if (await ask($("#mergeDialog")) !== "ok") return;
+    try { await signInWithCredential(auth, cred); } catch (err) { showSigninError(err); }
+    return;
+  }
+  showSigninError(e);
 }
+
+/* ---------- Danger Zone: delete the user and all their data ---------- */
+const hasProvider = (u, id) => u.providerData.some((p) => p.providerId === id);
+const dangerDlg = $("#dangerDialog");
+
+function openDanger() {
+  const u = auth.currentUser;
+  if (!u) return;
+  $("#dangerPassRow").classList.toggle("hidden", !hasProvider(u, "password"));
+  $("#dangerPass").value = "";
+  $("#dangerError").textContent = "";
+  $("#dangerGo").disabled = false;
+  $("#dangerGo").textContent = "Delete everything";
+  dangerDlg.showModal();
+}
+
+// Deletes every document under users/{uid}, in batches (Firestore allows 500 per batch).
+async function deleteAllData(uid) {
+  for (const name of ["activities", "sessions", "settings"]) {
+    const snap = await getDocs(collection(db, "users", uid, name));
+    for (let i = 0; i < snap.docs.length; i += 400) {
+      const batch = writeBatch(db);
+      snap.docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
+  }
+}
+
+$("#dangerForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const err = $("#dangerError"), go = $("#dangerGo");
+  err.textContent = "";
+  const u = auth.currentUser;
+  if (!u) return dangerDlg.close();
+  if (!navigator.onLine) { err.textContent = "You're offline. Connect to the internet to delete your data."; return; }
+  const usesPassword = hasProvider(u, "password");
+  const pass = $("#dangerPass").value;
+  if (usesPassword && !pass) { err.textContent = "Type your password first."; return; }
+  go.disabled = true;
+  go.textContent = "Deleting…";
+  try {
+    // 1. Make sure it's really them (Firebase asks for a fresh sign-in before deleting a user).
+    if (usesPassword) await reauthenticateWithCredential(u, EmailAuthProvider.credential(userEmail(u), pass));
+    else if (hasProvider(u, "google.com")) await reauthenticateWithPopup(u, new GoogleAuthProvider());
+    // 2. Stop live updates, then delete the data and this device's offline note.
+    unsubs.forEach((un) => un());
+    unsubs = [];
+    await deleteAllData(u.uid);
+    try { localStorage.removeItem(`ct-offline-saved-${u.uid}`); } catch { /* ignore */ }
+    // 3. Delete the user itself: the app goes back to the first page.
+    await deleteUser(u);
+    dangerDlg.close();
+    toast("Your user and all your data were deleted.");
+  } catch (e2) {
+    if (e2.code === "auth/popup-closed-by-user" || e2.code === "auth/cancelled-popup-request") err.textContent = "Deleting was cancelled.";
+    else if (e2.code === "permission-denied") err.textContent = "The database didn't allow deleting. Check the Firestore rules.";
+    else err.textContent = authErrorText(e2).replace("Sign-in failed", "Deleting failed");
+    if (state.user && !unsubs.length) subscribe();   // stopped halfway: show what's still there
+  } finally {
+    go.disabled = false;
+    go.textContent = "Delete everything";
+  }
+});
+dangerDlg.addEventListener("click", (e) => { if (e.target === e.currentTarget) dangerDlg.close(); });
+
+// Profile details can sit on the linked provider when a guest upgraded.
+const userEmail = (u) => u.email || u.providerData.find((p) => p.email)?.email || "";
+const userPhoto = (u) => u.photoURL || u.providerData.find((p) => p.photoURL)?.photoURL || "";
 
 function setAvatar(user) {
   const btn = $("#userBtn");
-  if (user.photoURL) {
-    btn.style.backgroundImage = `url("${user.photoURL}")`;
+  btn.classList.toggle("guest", user.isAnonymous);
+  if (user.isAnonymous) {
+    btn.style.backgroundImage = "";
+    btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>';
+    btn.setAttribute("aria-label", "Not logged in");
+    return;
+  }
+  btn.setAttribute("aria-label", "Account");
+  const photo = userPhoto(user);
+  if (photo) {
+    btn.style.backgroundImage = `url("${photo}")`;
     btn.textContent = "";
   } else {
     btn.style.backgroundImage = "";
-    btn.textContent = (user.displayName || user.email || "?").charAt(0).toUpperCase();
+    btn.textContent = (user.displayName || userEmail(user) || "?").charAt(0).toUpperCase();
   }
 }
 
@@ -1985,9 +2224,16 @@ function renderPopover() {
     }
   } else if (pop.type === "user") {
     if (popEl.dataset.built !== "user") {
-      popEl.innerHTML = `<p class="pop-email"></p><button class="btn" data-act="signout">Sign out</button>` +
-        `<button class="why-link pop-privacy" data-act="privacy">Privacy &amp; sign-in info</button>`;
-      popEl.querySelector(".pop-email").textContent = state.user?.email || "";
+      const privacy = `<button class="why-link pop-privacy" data-act="privacy">Privacy &amp; sign-in info</button>`;
+      const trash = `<button class="trash-btn" data-act="danger" aria-label="Delete user and all data"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg></button>`;
+      if (isGuest()) {
+        popEl.innerHTML = `<p class="pop-email pop-guest">User not logged in</p>` +
+          `<p class="pop-note">Your data is saved on this device only and doesn't sync.</p>` +
+          `<div class="pop-acct"><button class="btn primary" data-act="login">Log in</button>${trash}</div>` + privacy;
+      } else {
+        popEl.innerHTML = `<p class="pop-email"></p><div class="pop-acct"><button class="btn" data-act="signout">Sign out</button>${trash}</div>` + privacy;
+        popEl.querySelector(".pop-email").textContent = state.user ? userEmail(state.user) : "";
+      }
       popEl.dataset.built = "user";
     }
   }
@@ -2034,6 +2280,8 @@ popEl.addEventListener("click", (e) => {
   if (!btn || !pop) return;
   if (btn.dataset.act === "close") return closePopover();
   if (btn.dataset.act === "signout") { closePopover(); return signOut(auth); }
+  if (btn.dataset.act === "login") { closePopover(); closeDrawer(); return showSignin(true); }
+  if (btn.dataset.act === "danger") { closePopover(); return openDanger(); }
   if (btn.dataset.act === "privacy") { closePopover(); return $("#whyDialog").showModal(); }
   if (btn.dataset.act === "edit") { const id = pop.id; closePopover(); return openActivityDialog(id); }
   // The info popup stays open behind the question and closes only if the delete goes ahead.
