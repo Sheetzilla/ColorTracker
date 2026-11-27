@@ -10,8 +10,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=22";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=22";
+import { firebaseConfig } from "./firebase-config.js?v=24";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=24";
 
 /* =========================================================
    Firebase
@@ -1108,6 +1108,48 @@ function monthSessions(y, m) {
 }
 
 // Draws month m's animal coloured with that month's sessions.
+/* ---------- Shuffled animals: tap = random, tap = in order, tap = a new random… ---------- */
+// Remembered on this device per month: { "2026-11": seed }. No seed = in order.
+const SHUFFLE_KEY = "ct-animal-shuffle";
+let shuffleSeeds = {};
+try { shuffleSeeds = JSON.parse(localStorage.getItem(SHUFFLE_KEY) || "{}") || {}; } catch { shuffleSeeds = {}; }
+let justShuffled = null;   // "YYYY-MM" that was just tapped: its dots play the shuffle animation once
+
+function seededRandom(seed) {   // mulberry32: same seed = same "random" order every time
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Which point each session sits on. In order: session i on point i. Random: the animal's
+// main points in a random order (extra points stay last), so a new session lands on a free random spot.
+function dotSlots(key, baseN, totalPoints) {
+  const order = Array.from({ length: totalPoints }, (_, i) => i);
+  const seed = shuffleSeeds[key];
+  if (seed === undefined) return order;
+  const rnd = seededRandom(seed);
+  for (let i = baseN - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+}
+
+function toggleShuffle(y, m) {
+  const key = `${y}-${pad(m + 1)}`;
+  if (shuffleSeeds[key] === undefined) shuffleSeeds[key] = Math.floor(Math.random() * 2 ** 31);
+  else delete shuffleSeeds[key];
+  try { localStorage.setItem(SHUFFLE_KEY, JSON.stringify(shuffleSeeds)); } catch { /* ignore */ }
+  justShuffled = key;
+  renderCalendar();
+  justShuffled = null;
+  if (galleryOpen) renderGallery();
+}
+
 function animalSvg(y, m, { popFrom = Infinity, wiggle = false, align = "xMidYMid" } = {}) {
   const animal = ANIMALS[m];
   const sessions = monthSessions(y, m);
@@ -1115,6 +1157,11 @@ function animalSvg(y, m, { popFrom = Infinity, wiggle = false, align = "xMidYMid
   const baseN = animal.base.length;
   const points = [...animal.base, ...animal.extra];
   const total = Math.min(points.length, Math.max(baseN, count));
+  const key = `${y}-${pad(m + 1)}`;
+  const slots = dotSlots(key, baseN, points.length);
+  const sessionAt = new Map();   // point index -> session index
+  for (let i = 0; i < Math.min(count, points.length); i++) sessionAt.set(slots[i], i);
+  const shuffling = justShuffled === key;
 
   const NS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(NS, "svg");
@@ -1123,15 +1170,18 @@ function animalSvg(y, m, { popFrom = Infinity, wiggle = false, align = "xMidYMid
   svg.setAttribute("class", "fish" + (wiggle ? " wiggle" : "") + (count >= baseN ? " full" : ""));
   svg.setAttribute("role", "img");
   svg.setAttribute("aria-label", `${animal.name}: ${count} of ${baseN} dots coloured`);
+  svg.dataset.ym = `${y}-${m}`;
   for (let i = 0; i < total; i++) {
     const c = document.createElementNS(NS, "circle");
     c.setAttribute("cx", points[i][0].toFixed(1));
     c.setAttribute("cy", points[i][1].toFixed(1));
     c.setAttribute("r", i < baseN ? 2.7 : 2.2);
-    if (i < count) {
-      const s = sessions[i];
+    const si = sessionAt.get(i);
+    if (si !== undefined) {
+      const s = sessions[si];
       c.setAttribute("fill", shade(state.activities.get(s.activityId).color, s.minutes));
-      if (i >= popFrom) c.setAttribute("class", "pop");
+      if (shuffling) { c.setAttribute("class", "shuffle"); c.style.animationDelay = `${Math.min(si * 12, 300)}ms`; }
+      else if (si >= popFrom) c.setAttribute("class", "pop");
     } else {
       c.setAttribute("class", "grey");
     }
@@ -1149,8 +1199,18 @@ function liveAnimal(y, m, align) {
   animalSeen.set(key, count);
   const popFrom = prev !== undefined && count > prev ? prev : Infinity;
   const wiggle = prev !== undefined && prev < baseN && count >= baseN;
-  return animalSvg(y, m, { popFrom, wiggle, align }).svg;
+  const svg = animalSvg(y, m, { popFrom, wiggle, align }).svg;
+  svg.classList.add("tappable");   // tap to shuffle the dots
+  return svg;
 }
+
+$("#calendar").addEventListener("click", (e) => {
+  const fish = e.target.closest("svg.fish.tappable");
+  if (!fish || swipeBusy) return;
+  const [y, m] = fish.dataset.ym.split("-").map(Number);
+  vibrate(10);
+  toggleShuffle(y, m);
+});
 
 function addFish(box, trail, rows, extraRow, y, m) {
   const svg = liveAnimal(y, m, "xMaxYMid");   // hug the right edge

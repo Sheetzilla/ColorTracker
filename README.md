@@ -61,6 +61,7 @@ Sign in with the same account (email or Google) everywhere. Guests can tap the *
 | Undo / redo (last 5 steps) | **Two-finger tap / three-finger tap** · Ctrl+Z / Ctrl+Y on a computer |
 | Scroll through many dots | ‹ › arrows beside the dots, or swipe |
 | Month / week | Toggle at the top. Week numbers are calendar weeks. |
+| Shuffle the animal's dots | Tap the animal (tap again = back in order) |
 
 Undo history is kept per device and resets when the page reloads.
 

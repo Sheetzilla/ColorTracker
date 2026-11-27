@@ -605,3 +605,7 @@ html { background: #fff; }
 #imgTitle:focus { outline: none; }
 .img-back { position: absolute; left: -6px; top: 50%; transform: translateY(-50%); }
 .img-back svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+/* tap the calendar animal to shuffle its dots */
+.fish.tappable { pointer-events: auto; cursor: pointer; }
+.fish circle.shuffle { animation: dot-shuffle .35s cubic-bezier(.3,1.6,.5,1) backwards; }
+@keyframes dot-shuffle { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
