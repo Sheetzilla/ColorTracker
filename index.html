@@ -30,7 +30,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- ?v= is the app version: raised with every update (also in app.js imports and sw.js),
        so the browser always loads files that belong together. -->
-  <link rel="stylesheet" href="style.css?v=40">
+  <link rel="stylesheet" href="style.css?v=42">
 </head>
 <body>
   <div id="loading" class="loading">Loading…</div>
@@ -185,7 +185,6 @@
       <span>ColorTracker</span>
       <button id="drawerClose" class="icon-btn" aria-label="Close menu">×</button>
     </div>
-    <button id="addActivityBtn" class="btn add-btn">＋ New activity</button>
     <div class="fold">
       <button id="activitiesToggle" class="gallery-toggle" type="button" aria-expanded="false" aria-controls="activitiesBody">
         <span>Activities</span><span class="chev" aria-hidden="true">›</span>
@@ -193,6 +192,7 @@
       <div id="activitiesBody" class="hidden">
         <p class="hint">Drag an activity onto a day to log a session. Tap one to edit it.</p>
         <ul id="activityList" class="activity-list"></ul>
+        <button id="addActivityBtn" class="btn add-btn">＋ New activity</button>
       </div>
     </div>
     <div class="settings fold">
@@ -249,6 +249,10 @@
       <p><b>Slide</b> left or right on the calendar (or drag it with the mouse) to move between months, or weeks in week view.</p>
       <p><b>Click</b> the arrow under "Week" to hide or show week numbers. On mobile, <b>double-tap</b> the week numbers instead.</p>
       <p><b>Tap</b> the animal to shuffle its dots. Tap again to put them back in order.</p>
+    </div>
+    <div class="drawer-foot">
+      <div class="foot-brand"><div class="logo tiny" aria-hidden="true"><i></i><i></i><i></i><i></i></div><span>ColorTracker</span></div>
+      <p id="drawerCopyright" class="drawer-copyright"></p>
     </div>
   </aside>
 
@@ -352,6 +356,6 @@
 
   <div id="toast" class="toast hidden" popover="manual" role="status"></div>
 
-  <script type="module" src="app.js?v=40"></script>
+  <script type="module" src="app.js?v=42"></script>
 </body>
 </html>

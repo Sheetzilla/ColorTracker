@@ -10,8 +10,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=40";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=40";
+import { firebaseConfig } from "./firebase-config.js?v=42";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=42";
 
 /* =========================================================
    Firebase
@@ -1426,6 +1426,7 @@ function drawFooter(ctx, W, cy) {
 }
 
 const COPYRIGHT = () => `Copyright © ${new Date().getFullYear()} Sheet | Sleet Sheet Studio`;
+$("#drawerCopyright").textContent = COPYRIGHT();   // same line as on the gallery image
 
 // Logo + name, and the copyright line under it. cy = centre of the logo row.
 function drawFooterBlock(ctx, W, cy) {
