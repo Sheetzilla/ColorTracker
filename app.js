@@ -10,8 +10,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=44";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=44";
+import { firebaseConfig } from "./firebase-config.js?v=45";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=45";
 
 /* =========================================================
    Firebase
@@ -977,7 +977,7 @@ function calendarShell(rows, headCells) {
   const hidden = $("#calendar").classList.contains("no-wk");
   tog.setAttribute("aria-label", hidden ? "Show week numbers" : "Hide week numbers");
   tog.setAttribute("aria-expanded", String(!hidden));
-  lbl.append(el("span", "wk-word", "Week"), tog);
+  lbl.append(el("span", "wk-word", "Wk"), tog);
   head.append(lbl, ...headCells);
   const body = el("div", "cal-body");
   const wknos = el("div", "wknos");
