@@ -30,7 +30,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- ?v= is the app version: raised with every update (also in app.js imports and sw.js),
        so the browser always loads files that belong together. -->
-  <link rel="stylesheet" href="style.css?v=42">
+  <link rel="stylesheet" href="style.css?v=44">
 </head>
 <body>
   <div id="loading" class="loading">Loading…</div>
@@ -191,8 +191,8 @@
       </button>
       <div id="activitiesBody" class="hidden">
         <p class="hint">Drag an activity onto a day to log a session. Tap one to edit it.</p>
-        <ul id="activityList" class="activity-list"></ul>
         <button id="addActivityBtn" class="btn add-btn">＋ New activity</button>
+        <ul id="activityList" class="activity-list"></ul>
       </div>
     </div>
     <div class="settings fold">
@@ -200,6 +200,10 @@
         <span>Settings</span><span class="chev" aria-hidden="true">›</span>
       </button>
       <div id="settingsBody" class="fold-body hidden">
+      <label class="switch-row">
+        <span>Show week numbers</span>
+        <input type="checkbox" id="weekNosToggle" class="switch" role="switch">
+      </label>
       <label class="switch-row">
         <span>Swipe to change month / week</span>
         <input type="checkbox" id="swipeToggle" class="switch" role="switch">
@@ -247,7 +251,7 @@
       <p><b>Hold</b> a dot and flick it away to delete it.</p>
       <p><b>Two-finger tap:</b> undo · <b>Three-finger tap:</b> redo<br>(Ctrl+Z / Ctrl+Y on a computer)</p>
       <p><b>Slide</b> left or right on the calendar (or drag it with the mouse) to move between months, or weeks in week view.</p>
-      <p><b>Click</b> the arrow under "Week" to hide or show week numbers. On mobile, <b>double-tap</b> the week numbers instead.</p>
+      <p><b>Click</b> the arrow before "Mon" to hide or show week numbers. On a phone, <b>double-tap</b> the left edge of the calendar (week numbers or Monday) instead. There is also a switch in Settings.</p>
       <p><b>Tap</b> the animal to shuffle its dots. Tap again to put them back in order.</p>
     </div>
     <div class="drawer-foot">
@@ -356,6 +360,6 @@
 
   <div id="toast" class="toast hidden" popover="manual" role="status"></div>
 
-  <script type="module" src="app.js?v=42"></script>
+  <script type="module" src="app.js?v=44"></script>
 </body>
 </html>

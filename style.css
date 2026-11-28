@@ -233,12 +233,16 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
   touch-action: pan-y; }   /* sideways finger moves stay with the app (for swiping months/weeks) */
 .calendar .blocks { touch-action: pan-y; }   /* busy days scroll on their own, so they need it too */
 /* week numbers hidden with the arrow: only the arrow is left, pointing right */
-.calendar.no-wk { --wkcol: 24px !important; }
+/* the column disappears completely, so the month has the same space on both sides */
+.calendar.no-wk { --wkcol: 0px !important; }
 .calendar.no-wk .wk-word, .calendar.no-wk .wkno { visibility: hidden; }
-.calendar.no-wk .wknos { overflow: hidden; }   /* the empty strip stays, so phones can double-tap it to bring the numbers back */
-/* "Week" sits on the weekday row; on computers the arrow hangs just under it, above the first week number */
+.calendar.no-wk .wknos, .calendar.no-wk .wk-lbl { overflow: visible; }
+/* phones: no "Week" title above the numbers */
+@media (pointer: coarse) { .wk-word { visibility: hidden; } }
+/* "Week" sits on the weekday row, above the week numbers */
 .wk-lbl { position: relative; min-width: 0; }
-.wk-toggle { position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%); z-index: 1;
+/* computers: the arrow always sits at the left end of the weekday row, just before "Mon" (it doesn't move when hiding) */
+.wk-toggle { position: absolute; bottom: 0; left: 100%; z-index: 1;
   width: 24px; height: 22px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--muted);
   display: grid; place-items: center; cursor: var(--c-pointer); }
 /* phones and tablets: no arrow, double-tap the week column instead */
@@ -395,6 +399,7 @@ body.dragging, body.dragging * { cursor: var(--c-drag, grabbing) !important; }
 .drawer-head { display: flex; align-items: center; gap: 10px; font-size: 20px; color: var(--muted); margin-bottom: 14px; }
 .drawer-head span { flex: 1; }
 .add-btn { width: 100%; padding: 12px 16px; box-shadow: 0 1px 3px rgba(60,64,67,.15); }
+#activitiesBody .add-btn { margin: 4px 0 10px; }
 .install-btn { width: 100%; padding: 10px 16px; margin-bottom: 6px; }
 .drawer-title { margin: 22px 4px 4px; font-size: 15px; font-weight: 600; }
 .hint, .gesture-help p { margin: 0 4px 10px; font-size: 13px; color: var(--muted); line-height: 1.4; }

@@ -10,8 +10,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=42";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=42";
+import { firebaseConfig } from "./firebase-config.js?v=44";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=44";
 
 /* =========================================================
    Firebase
@@ -1748,8 +1748,14 @@ function applyWeekNos() {
   let hide = false;
   try { hide = localStorage.getItem(HIDE_WK_KEY) === "1"; } catch { /* ignore */ }
   $("#calendar").classList.toggle("no-wk", hide);
+  $("#weekNosToggle").checked = !hide;
 }
 applyWeekNos();
+// Settings switch
+$("#weekNosToggle").addEventListener("change", (e) => {
+  const showing = !$("#calendar").classList.contains("no-wk");
+  if (e.target.checked !== showing) toggleWeekNos();
+});
 
 // The numbers slide up into the arrow (hide) or back down out of it (show).
 const WK_MS = 260;
@@ -1797,6 +1803,14 @@ $("#calendar").addEventListener("click", (e) => {
   if (e.target.closest(".wk-toggle")) toggleWeekNos();
 });
 
+// Phones: double-tapping the left side of the calendar (the week numbers and the
+// whole Monday column) hides / shows the week numbers.
+function inWeekTapZone(e) {
+  const box = $("#calendar .cal .box");
+  if (!box) return false;
+  const r = box.getBoundingClientRect();
+  return e.clientX <= r.left + r.width / 7 && e.clientY >= r.top - 40 && e.clientY <= r.bottom;
+}
 let tapStart = null, lastTap = null;
 $("#calendar").addEventListener("pointerdown", (e) => {
   tapStart = e.pointerType === "touch" && e.isPrimary ? { x: e.clientX, y: e.clientY, t: e.timeStamp } : null;
@@ -1807,7 +1821,7 @@ $("#calendar").addEventListener("pointerup", (e) => {
   if (!s || e.pointerType !== "touch" || !isPhone()) return;
   if (e.timeStamp - s.t > 300 || Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) { lastTap = null; return; }   // not a tap
   if (e.target.closest("[data-drag], button, a, input") || (multi && multi.max > 1)) { lastTap = null; return; }
-  if (!e.target.closest(".wknos, .wk-lbl")) { lastTap = null; return; }   // only the week column
+  if (!inWeekTapZone(e) || e.target.closest("svg.fish")) { lastTap = null; return; }   // only the left edge: week numbers + Monday
   if (lastTap && e.timeStamp - lastTap.t < 350 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40) {
     lastTap = null;
     toggleWeekNos();
