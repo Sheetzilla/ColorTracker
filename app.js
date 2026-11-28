@@ -10,8 +10,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=45";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=45";
+import { firebaseConfig } from "./firebase-config.js?v=46";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=46";
 
 /* =========================================================
    Firebase
@@ -228,6 +228,8 @@ function setAuthMode(mode) {
   $("#passInput").autocomplete = login ? "current-password" : "new-password";
   $("#passInput").placeholder = login ? "Password" : "Password (at least 6 characters)";
   $("#forgotBtn").classList.toggle("hidden", !login);
+  $("#pass2Input").value = "";
+  updateConfirm();
   $("#modeRow").classList.toggle("hidden", !open);
   $("#modeText").textContent = login ? "New here?" : "Already have an account?";
   $("#modeBtn").textContent = login ? "Create account" : "Log in";
@@ -249,8 +251,10 @@ function hideSignin() {
   signinMsg("");
 }
 
-function signinMsg(text, ok = false) {
+// anchor = the button that was tapped: the message appears right under it
+function signinMsg(text, ok = false, anchor = null) {
   const p = $("#signinError");
+  if (anchor && anchor.nextElementSibling !== p) anchor.after(p);
   p.textContent = text;
   p.classList.toggle("ok", ok);
 }
@@ -274,7 +278,24 @@ function authErrorText(e) {
     default: return `Sign-in failed (${e.code || e.message}).`;
   }
 }
-const showSigninError = (e) => signinMsg(authErrorText(e));
+const showSigninError = (e, anchor = null) => signinMsg(authErrorText(e), false, anchor);
+
+/* ---------- confirm password (create account only) ---------- */
+function updateConfirm() {
+  const pass = $("#passInput").value, pass2 = $("#pass2Input").value;
+  const show = authMode === "signup" && pass.length > 0;
+  const wrap = $("#confirmWrap");
+  wrap.classList.toggle("open", show);
+  wrap.inert = !show;
+  const f = $("#confirmField");
+  f.classList.toggle("match", show && pass2.length > 0 && pass2 === pass);
+  f.classList.toggle("mismatch", show && pass2.length >= pass.length && pass2 !== pass);
+  // once they match, the old "don't match" message goes away
+  const msg = $("#signinError").textContent;
+  if (pass2 === pass && (msg === "The passwords don't match." || msg === "Write the password again to confirm it.")) signinMsg("");
+}
+$("#passInput").addEventListener("input", updateConfirm);
+$("#pass2Input").addEventListener("input", updateConfirm);
 
 // Opens a dialog and resolves with the button's value ("ok" / "cancel").
 function ask(dialog) {
@@ -307,8 +328,16 @@ $("#emailForm").addEventListener("submit", async (e) => {
   if (authMode === "closed") return setAuthMode("signup");   // first tap only opens the fields
   const email = $("#emailInput").value.trim();
   const pass = $("#passInput").value;
-  if (!email) return signinMsg("Write your email address first.");
-  if (!pass) return signinMsg(authMode === "signup" ? "Choose a password (at least 6 characters)." : "Write your password.");
+  const here = $("#emailForm");
+  if (!email) return signinMsg("Write your email address first.", false, here);
+  if (!pass) return signinMsg(authMode === "signup" ? "Choose a password (at least 6 characters)." : "Write your password.", false, here);
+  if (authMode === "signup") {
+    const pass2 = $("#pass2Input").value;
+    if (pass2 !== pass) {
+      setTimeout(() => $("#pass2Input").focus({ preventScroll: true }), 50);
+      return signinMsg(pass2 ? "The passwords don't match." : "Write the password again to confirm it.", false, here);
+    }
+  }
   const btn = $("#emailBtn");
   btn.disabled = true;
   try {
@@ -324,20 +353,29 @@ $("#emailForm").addEventListener("submit", async (e) => {
       await signInWithEmailAndPassword(auth, email, pass);
     }
   } catch (err) {
-    showSigninError(err);
+    showSigninError(err, $("#emailForm"));
   } finally {
     btn.disabled = false;
   }
 });
 
 $("#forgotBtn").addEventListener("click", async () => {
+  const btn = $("#forgotBtn");
   const email = $("#emailInput").value.trim();
-  if (!email) return signinMsg("Write your email address above, then tap Forgot password again.");
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // close the phone keyboard
+  if (!email) return signinMsg("Write your email address above, then tap Forgot password again.", false, btn);
+  btn.disabled = true;
+  btn.textContent = "Sending…";
   try {
     await sendPasswordResetEmail(auth, email);
-    signinMsg("If that email has an account, a reset link is on its way. Check your spam folder too.", true);
+    btn.textContent = "Reset email sent ✓";
+    signinMsg("If that email has an account, a reset link is on its way. Check your spam folder too.", true, btn);
   } catch (err) {
-    showSigninError(err);
+    btn.textContent = "Forgot password?";
+    showSigninError(err, btn);
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = "Forgot password?"; }, 4000);
   }
 });
 
@@ -352,7 +390,7 @@ $("#guestBtn").addEventListener("click", async () => {
   try {
     await signInAnonymously(auth);
   } catch (err) {
-    showSigninError(err);
+    showSigninError(err, $("#guestBtn"));
   }
 });
 
@@ -384,12 +422,12 @@ async function handleGoogleError(e) {
   if (e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request") return;
   if (e.code === "auth/credential-already-in-use") {
     const cred = GoogleAuthProvider.credentialFromError(e);
-    if (!cred) return showSigninError(e);
+    if (!cred) return showSigninError(e, $("#signinBtn"));
     if (await ask($("#mergeDialog")) !== "ok") return;
-    try { await signInWithCredential(auth, cred); } catch (err) { showSigninError(err); }
+    try { await signInWithCredential(auth, cred); } catch (err) { showSigninError(err, $("#signinBtn")); }
     return;
   }
-  showSigninError(e);
+  showSigninError(e, $("#signinBtn"));
 }
 
 /* ---------- Danger Zone: delete the user and all their data ---------- */

@@ -30,7 +30,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- ?v= is the app version: raised with every update (also in app.js imports and sw.js),
        so the browser always loads files that belong together. -->
-  <link rel="stylesheet" href="style.css?v=45">
+  <link rel="stylesheet" href="style.css?v=46">
 </head>
 <body>
   <div id="loading" class="loading">Loading…</div>
@@ -48,6 +48,15 @@
           <div class="email-fields-inner">
             <input id="emailInput" type="email" placeholder="Email" autocomplete="email" aria-label="Email">
             <input id="passInput" type="password" placeholder="Password (at least 6 characters)" autocomplete="new-password" aria-label="Password">
+            <!-- Create account only: opens once a password is typed -->
+            <div id="confirmWrap" class="confirm-wrap" inert>
+              <div class="confirm-inner">
+                <div id="confirmField" class="confirm-field">
+                  <input id="pass2Input" type="password" placeholder="Confirm password" autocomplete="new-password" aria-label="Confirm password">
+                  <span class="match-mark" aria-hidden="true">✓</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <button id="emailBtn" type="submit" class="btn primary wide">Create account</button>
@@ -360,6 +369,6 @@
 
   <div id="toast" class="toast hidden" popover="manual" role="status"></div>
 
-  <script type="module" src="app.js?v=45"></script>
+  <script type="module" src="app.js?v=46"></script>
 </body>
 </html>
