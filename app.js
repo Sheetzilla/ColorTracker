@@ -10,8 +10,8 @@ import {
   collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, deleteField,
   query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=39";   // ?v= = app version, same as in index.html / sw.js
-import { ANIMALS } from "./animals.js?v=39";
+import { firebaseConfig } from "./firebase-config.js?v=40";   // ?v= = app version, same as in index.html / sw.js
+import { ANIMALS } from "./animals.js?v=40";
 
 /* =========================================================
    Firebase
@@ -1296,6 +1296,7 @@ function setupFold(toggleSel, bodySel, storeKey, openByDefault) {
 setupFold("#activitiesToggle", "#activitiesBody", "ct-fold-activities-v2", false);   // new key: everyone starts closed once
 setupFold("#backupToggle", "#backupBody", "ct-fold-backup", false);
 setupFold("#settingsToggle", "#settingsBody", "ct-fold-settings", false);
+setupFold("#installToggle", "#installBody", "ct-fold-install", false);
 
 $("#galleryToggle").addEventListener("click", () => {
   galleryOpen = !galleryOpen;

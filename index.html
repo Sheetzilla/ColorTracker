@@ -30,7 +30,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- ?v= is the app version: raised with every update (also in app.js imports and sw.js),
        so the browser always loads files that belong together. -->
-  <link rel="stylesheet" href="style.css?v=39">
+  <link rel="stylesheet" href="style.css?v=40">
 </head>
 <body>
   <div id="loading" class="loading">Loading…</div>
@@ -195,29 +195,6 @@
         <ul id="activityList" class="activity-list"></ul>
       </div>
     </div>
-    <div class="gallery">
-      <button id="galleryToggle" class="gallery-toggle" type="button" aria-expanded="false" aria-controls="galleryGrid">
-        <span>Gallery</span><span class="chev" aria-hidden="true">›</span>
-      </button>
-      <div id="galleryGrid" class="gallery-grid hidden"></div>
-      <button id="galleryDownload" class="btn backup-btn gallery-dl hidden" type="button">⬇ Download all as image</button>
-    </div>
-    <div class="backup">
-      <button id="backupToggle" class="gallery-toggle" type="button" aria-expanded="false" aria-controls="backupBody">
-        <span>Backup</span><span class="chev" aria-hidden="true">›</span>
-      </button>
-      <div id="backupBody" class="fold-body hidden">
-        <button id="backupBtn" class="btn backup-btn" type="button">⬇ Download backup</button>
-        <button id="restoreBtn" class="btn backup-btn" type="button">⬆ Restore from backup</button>
-        <button id="csvBtn" class="btn backup-btn" type="button">📄 Export CSV (for Excel / Sheets)</button>
-      </div>
-      <input id="restoreFile" type="file" accept=".json,application/json" hidden>
-    </div>
-    <div id="installBox" class="install-box hidden">
-      <h3 class="drawer-title">Get the app</h3>
-      <button id="installBtn" class="btn install-btn hidden">⬇ Install app</button>
-      <p id="iosHint" class="hint hidden">On iPhone: tap the <b>Share</b> button in Safari, then <b>Add to Home Screen</b>.</p>
-    </div>
     <div class="settings fold">
       <button id="settingsToggle" class="gallery-toggle" type="button" aria-expanded="false" aria-controls="settingsBody">
         <span>Settings</span><span class="chev" aria-hidden="true">›</span>
@@ -237,10 +214,37 @@
       </div>
       </div>
     </div>
+    <div class="gallery">
+      <button id="galleryToggle" class="gallery-toggle" type="button" aria-expanded="false" aria-controls="galleryGrid">
+        <span>Gallery</span><span class="chev" aria-hidden="true">›</span>
+      </button>
+      <div id="galleryGrid" class="gallery-grid hidden"></div>
+      <button id="galleryDownload" class="btn backup-btn gallery-dl hidden" type="button">⬇ Download all as image</button>
+    </div>
+    <div class="backup">
+      <button id="backupToggle" class="gallery-toggle" type="button" aria-expanded="false" aria-controls="backupBody">
+        <span>Backup</span><span class="chev" aria-hidden="true">›</span>
+      </button>
+      <div id="backupBody" class="fold-body hidden">
+        <button id="backupBtn" class="btn backup-btn" type="button">⬇ Download backup</button>
+        <button id="restoreBtn" class="btn backup-btn" type="button">⬆ Restore from backup</button>
+        <button id="csvBtn" class="btn backup-btn" type="button">📄 Export CSV (for Excel / Sheets)</button>
+      </div>
+      <input id="restoreFile" type="file" accept=".json,application/json" hidden>
+    </div>
+    <div id="installBox" class="install-box fold hidden">
+      <button id="installToggle" class="gallery-toggle" type="button" aria-expanded="false" aria-controls="installBody">
+        <span>Get the app</span><span class="chev" aria-hidden="true">›</span>
+      </button>
+      <div id="installBody" class="fold-body hidden">
+        <button id="installBtn" class="btn install-btn hidden">⬇ Install app</button>
+        <p id="iosHint" class="hint hidden">On iPhone: tap the <b>Share</b> button in Safari, then <b>Add to Home Screen</b>.</p>
+      </div>
+    </div>
     <div class="gesture-help">
       <h3 class="drawer-title">Gestures</h3>
       <p><b>Drag</b> an activity dot onto a day to log a session. You can also <b>drag</b> the dots in the list to reorder them.</p>
-      <p><b>Hold</b> a square and flick it away to delete it.</p>
+      <p><b>Hold</b> a dot and flick it away to delete it.</p>
       <p><b>Two-finger tap:</b> undo · <b>Three-finger tap:</b> redo<br>(Ctrl+Z / Ctrl+Y on a computer)</p>
       <p><b>Slide</b> left or right on the calendar (or drag it with the mouse) to move between months, or weeks in week view.</p>
       <p><b>Click</b> the arrow under "Week" to hide or show week numbers. On mobile, <b>double-tap</b> the week numbers instead.</p>
@@ -348,6 +352,6 @@
 
   <div id="toast" class="toast hidden" popover="manual" role="status"></div>
 
-  <script type="module" src="app.js?v=39"></script>
+  <script type="module" src="app.js?v=40"></script>
 </body>
 </html>
